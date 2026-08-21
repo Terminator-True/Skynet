@@ -2,6 +2,8 @@
 
 use App\Services\ChatLoopExhaustedException;
 use App\Services\ChatOrchestrator;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -29,6 +31,8 @@ function assistantToolCall(string $name, array $args): array
         'tool_calls' => [['function' => ['name' => $name, 'arguments' => $args]]],
     ]];
 }
+
+afterEach(fn () => Carbon::setTestNow());
 
 it('returns a direct reply when the model calls no tools', function () {
     config(['ollama.base_url' => 'http://ollama.test']);
@@ -134,5 +138,24 @@ it('includes every registered tool definition in each request', function () {
         $names = collect($body['tools'] ?? [])->pluck('function.name')->all();
 
         return $names === ['get_current_time', 'calculate_sum', 'get_weather_mock', 'listar_eventos_calendario'];
+    });
+});
+
+it('injects the current datetime and assistant timezone into the system prompt', function () {
+    config(['ollama.base_url' => 'http://ollama.test']);
+    Carbon::setTestNow(CarbonImmutable::parse('2026-08-21 14:05', 'America/Argentina/Buenos_Aires'));
+
+    scriptedOllama([assistantContent('ok')]);
+
+    app(ChatOrchestrator::class)->handle('What do I have today?');
+
+    // Spec "Model can compute today": the system message must carry a fresh
+    // date + timezone line so relative expressions resolve to concrete args.
+    Http::assertSent(function ($request): bool {
+        $system = json_decode($request->body(), true)['messages'][0]['content'];
+
+        return str_contains($system, 'Current date/time: Friday, 2026-08-21 14:05')
+            && str_contains($system, '(America/Argentina/Buenos_Aires)')
+            && str_contains($system, "resolve relative dates like 'today'");
     });
 });
