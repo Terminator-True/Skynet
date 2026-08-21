@@ -22,6 +22,8 @@ pest()->extend(TestCase::class)->in('Unit');
 
 pest()->extend(TestCase::class)->in('Eval');
 
+pest()->extend(TestCase::class)->in('Live');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
