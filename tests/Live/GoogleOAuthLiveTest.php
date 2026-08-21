@@ -45,15 +45,27 @@ it('runs the full consent → callback → encrypted persist → lazy refresh ro
     'GATE STATUS: PENDING_GCP_CHECKLIST — set GOOGLE_OAUTH_LIVE=1 only after confirming the GCP checklist (spec S12).',
 );
 
-it('verifies configured credentials are accepted by Google tokeninfo', function () {
+it('verifies configured credentials against the Google authorization endpoint', function () {
     $clientId = config('services.google.client_id');
+    $redirect = config('services.google.redirect');
 
-    $response = Http::timeout(10)->get('https://oauth2.googleapis.com/tokeninfo', [
-        'client_id' => $clientId,
-    ]);
+    // Google's authorization endpoint classifies credential problems in its
+    // redirect target: unknown clients land on /signin/oauth/error with
+    // authError=invalid_client, unregistered redirect URIs with
+    // redirect_uri_mismatch. A healthy config redirects into the sign-in flow.
+    // (tokeninfo cannot validate a bare client_id — it requires a token.)
+    $response = Http::timeout(10)
+        ->withOptions(['allow_redirects' => false])
+        ->get('https://accounts.google.com/o/oauth2/v2/auth', [
+            'client_id' => $clientId,
+            'redirect_uri' => $redirect,
+            'response_type' => 'code',
+            'scope' => 'openid',
+        ]);
 
-    // A valid client id answers 200 even without a token; invalid ones answer 400.
-    expect($response->status())->toBe(200, "Client ID [{$clientId}] rejected by Google");
+    expect($response->status())->toBe(302)
+        ->and($response->header('Location'))
+        ->not->toContain('/signin/oauth/error');
 })->group('live')->skip(
     fn (): bool => ! (bool) env('GOOGLE_OAUTH_LIVE'),
     'GATE STATUS: PENDING_GCP_CHECKLIST — set GOOGLE_OAUTH_LIVE=1 only after confirming the GCP checklist (spec S12).',
