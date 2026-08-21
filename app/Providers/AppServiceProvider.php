@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Tools\Dummy\CalculateSum;
+use App\Tools\Dummy\GetCurrentTime;
+use App\Tools\Dummy\GetWeatherMock;
+use App\Tools\ToolRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ToolRegistry::class, function (): ToolRegistry {
+            $registry = new ToolRegistry;
+            $registry->register(new GetCurrentTime);
+            $registry->register(new CalculateSum);
+            $registry->register(new GetWeatherMock);
+
+            return $registry;
+        });
     }
 
     /**
