@@ -19,7 +19,9 @@ return new class extends Migration
             $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
             // Encrypted via model 'encrypted' casts (AES-256-GCM under APP_KEY).
             // Rotating APP_KEY invalidates every stored token: back it up first.
-            $table->text('access_token');
+            // access_token IS nullable: nulled when a refresh grant fails
+            // (reconnect_required signal); refresh_token never nulled.
+            $table->text('access_token')->nullable();
             $table->text('refresh_token');
             $table->timestamp('expires_at')->nullable();
             $table->json('scopes');
