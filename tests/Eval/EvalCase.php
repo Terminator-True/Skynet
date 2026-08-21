@@ -39,7 +39,7 @@ final class EvalCase
                 continue;
             }
 
-            if (($this->semantics)($call)) {
+            if ($this->semantics === null || ($this->semantics)($call)) {
                 return true;
             }
         }
