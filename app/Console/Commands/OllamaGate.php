@@ -34,7 +34,7 @@ class OllamaGate extends Command
     public function handle(): int
     {
         $baseUrl = rtrim(config('ollama.base_url') ?? env('OLLAMA_BASE_URL', 'http://localhost:11434'), '/');
-        $model = config('ollama.model', env('OLLAMA_MODEL', 'qwen2.5:14b-instruct-q4_K_M'));
+        $model = config('ollama.model', env('OLLAMA_MODEL', 'qwen2.5:14b'));
 
         $this->info("Probing {$baseUrl}/api/chat with model [{$model}]...");
 

@@ -5,7 +5,7 @@ return [
     'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
 
     // Config-only model swap (spec requirement).
-    'model' => env('OLLAMA_MODEL', 'qwen2.5:14b-instruct-q4_K_M'),
+    'model' => env('OLLAMA_MODEL', 'qwen2.5:14b'),
 
     'fallback_model' => env('OLLAMA_FALLBACK_MODEL', 'llama3.1:8b'),
 
