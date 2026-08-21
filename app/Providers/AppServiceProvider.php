@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Services\Google\ApiclientCalendarEventsReader;
 use App\Services\Google\ApiclientGoogleOAuthClient;
+use App\Services\Google\CalendarEventsReader;
 use App\Services\Google\GoogleOAuthClient;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
+use App\Tools\ListarEventosCalendario;
 use App\Tools\ToolRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -26,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register(new GetCurrentTime);
             $registry->register(new CalculateSum);
             $registry->register(new GetWeatherMock);
+            $registry->register($this->app->make(ListarEventosCalendario::class));
 
             return $registry;
         });
@@ -33,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
         // Vendor seam: tests bind fakes here (Http::fake cannot intercept
         // google/apiclient's internal Guzzle).
         $this->app->bind(GoogleOAuthClient::class, ApiclientGoogleOAuthClient::class);
+
+        // Vendor seam: tests bind fakes here (apiclient Guzzle bypasses Http::fake).
+        $this->app->bind(CalendarEventsReader::class, ApiclientCalendarEventsReader::class);
     }
 
     /**
