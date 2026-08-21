@@ -69,6 +69,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Assistant Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Timezone of the single user. Used to convert natural-language day ranges
+    | ("today") into offset-aware ISO8601 boundaries for Google Calendar.
+    |
+    */
+
+    'assistant_timezone' => env('ASSISTANT_TIMEZONE', 'America/Argentina/Buenos_Aires'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |
