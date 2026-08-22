@@ -61,6 +61,7 @@ async function send(): Promise<void> {
 
 <template>
     <Head title="Chat" />
+    <NotificationToasts />
     <div
         class="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]"
     >

@@ -74,7 +74,12 @@ class AmazonStatusChangeRule
             );
 
             if ($notification->wasRecentlyCreated) {
-                NotificationCreated::dispatch($user->id, $notification->payload);
+                NotificationCreated::dispatch($user->id, [
+                    'id' => $notification->id,
+                    'title' => 'Package update',
+                    'body' => "{$notification->payload['product_name']} — {$notification->payload['status']}",
+                    'created_at' => $notification->created_at?->toISOString(),
+                ]);
             }
         }
     }

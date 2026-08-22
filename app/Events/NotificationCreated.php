@@ -22,7 +22,7 @@ class NotificationCreated implements ShouldBroadcast
 
     /**
      * @param  int  $userId  single-tenant owner (GoogleToken precedent)
-     * @param  array<string, mixed>  $payload  denormalized notification payload
+     * @param  array{id: int, title: string, body: string, created_at: string|null}  $payload  normalized toast payload
      */
     public function __construct(
         public readonly int $userId,
@@ -31,9 +31,27 @@ class NotificationCreated implements ShouldBroadcast
 
     /**
      * Get the channels the event should broadcast on.
+     *
+     * PrivateChannel prepends `private-` itself, so the UNPREFIXED name is
+     * passed here — the wire channel is `private-notifications.{userId}`,
+     * which matches Echo's `.private('notifications.{userId}')` subscription
+     * and the `notifications.{userId}` auth pattern (Pusher conventions strip
+     * the prefix before channel-auth matching).
      */
     public function broadcastOn(): Channel
     {
-        return new PrivateChannel('private-notifications.'.$this->userId);
+        return new PrivateChannel('notifications.'.$this->userId);
+    }
+
+    /**
+     * The exact payload the client receives — normalized for the toast:
+     * `{ id, title, body, created_at }` (REQ realtime-delivery). Echo
+     * delivers `data` verbatim to the `.listen('NotificationCreated')` handler.
+     *
+     * @return array{id: int, title: string, body: string, created_at: string|null}
+     */
+    public function broadcastWith(): array
+    {
+        return $this->payload;
     }
 }
