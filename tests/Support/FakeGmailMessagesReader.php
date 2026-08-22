@@ -15,7 +15,7 @@ class FakeGmailMessagesReader implements GmailMessagesReader
     /** @var list<array{op: string, query: string|null, max_results: int|null, message_id: string|null}> */
     public array $calls = [];
 
-    /** @var Closure(string, int): list<array{subject: string, from: string, snippet: string, date: string|null}> */
+    /** @var Closure(string, int): list<array{id: string, subject: string, from: string, snippet: string, date: string|null}> */
     public Closure $searchHandler;
 
     /** @var Closure(string): array{subject: string, from: string, date: string|null, body: string} */

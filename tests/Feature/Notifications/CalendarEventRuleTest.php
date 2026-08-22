@@ -4,6 +4,7 @@ use App\Events\NotificationCreated;
 use App\Jobs\CheckForNotifications;
 use App\Models\Notification;
 use App\Models\User;
+use App\Notifications\Rules\AmazonStatusChangeRule;
 use App\Notifications\Rules\CalendarEventRule;
 use App\Services\Google\CalendarEventsReader;
 use Illuminate\Console\Scheduling\Schedule;
@@ -57,7 +58,10 @@ it('notifies exactly once for an event starting within the next hour', function 
 
     Event::fake([NotificationCreated::class]);
 
-    app(CheckForNotifications::class)->handle(app(CalendarEventRule::class));
+    app(CheckForNotifications::class)->handle(
+        app(CalendarEventRule::class),
+        app(AmazonStatusChangeRule::class),
+    );
 
     $notification = Notification::query()->first();
 
@@ -108,7 +112,10 @@ it('does not run any rule when no owner user exists', function () {
 
     Event::fake([NotificationCreated::class]);
 
-    app(CheckForNotifications::class)->handle(app(CalendarEventRule::class));
+    app(CheckForNotifications::class)->handle(
+        app(CalendarEventRule::class),
+        app(AmazonStatusChangeRule::class),
+    );
 
     expect(Notification::query()->count())->toBe(0);
     Event::assertNotDispatched(NotificationCreated::class);

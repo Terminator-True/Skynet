@@ -54,7 +54,7 @@ class BuscarCorreos implements Tool
 
     /**
      * @param  array<string, mixed>  $args
-     * @return array{messages?: list<array{subject: string, from: string, snippet: string, date: string|null}>, error?: string}
+     * @return array{messages?: list<array{id: string, subject: string, from: string, snippet: string, date: string|null}>, error?: string}
      */
     public function execute(array $args): array
     {

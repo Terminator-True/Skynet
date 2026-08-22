@@ -87,12 +87,15 @@ class ApiclientGmailMessagesReader implements GmailMessagesReader
 
     /**
      * Pure DTO mapping (offline unit-testable): trimmed metadata fields only.
+     * `id` is the opaque Gmail message id, forwarded additively so callers can
+     * re-fetch the body via get() without re-searching.
      *
-     * @return array{subject: string, from: string, snippet: string, date: string|null}
+     * @return array{id: string, subject: string, from: string, snippet: string, date: string|null}
      */
     public static function mapMessage(Message $message): array
     {
         return [
+            'id' => (string) $message->getId(),
             'subject' => self::header($message->getPayload(), 'Subject') ?? '',
             'from' => self::header($message->getPayload(), 'From') ?? '',
             'snippet' => (string) $message->getSnippet(),
