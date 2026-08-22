@@ -14,6 +14,9 @@
         <testsuite name="Live">
             <directory>tests/Live</directory>
         </testsuite>
+        <testsuite name="Eval">
+            <directory>tests/Eval</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

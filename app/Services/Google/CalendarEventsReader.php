@@ -14,7 +14,7 @@ interface CalendarEventsReader
      * @return list<array{title: string, start: string, end: string|null, all_day: bool, location: string|null}>
      *
      * @throws GoogleTokenRefreshException no connection or dead grant
-     * @throws GoogleApiException          transport / Google API failure
+     * @throws GoogleApiException transport / Google API failure
      */
     public function eventsBetween(string $timeMinAtom, string $timeMaxAtom, int $maxResults): array;
 }

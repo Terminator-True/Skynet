@@ -1,5 +1,8 @@
 <?php
 
+use App\Services\Google\ApiclientCalendarEventsReader;
+use App\Services\Google\CalendarEventsReader;
+use App\Services\Google\GoogleClientFactory;
 use App\Tools\ToolRegistry;
 
 /**
@@ -8,19 +11,19 @@ use App\Tools\ToolRegistry;
  * listar_eventos_calendario. Resolution is construction-only — no network.
  */
 it('binds the CalendarEventsReader seam to the apiclient adapter', function () {
-    expect(app(\App\Services\Google\CalendarEventsReader::class))
-        ->toBeInstanceOf(\App\Services\Google\ApiclientCalendarEventsReader::class);
+    expect(app(CalendarEventsReader::class))
+        ->toBeInstanceOf(ApiclientCalendarEventsReader::class);
 });
 
 it('resolves the adapter through the GoogleClientFactory dependency chain', function () {
-    $adapter = app(\App\Services\Google\ApiclientCalendarEventsReader::class);
+    $adapter = app(ApiclientCalendarEventsReader::class);
 
     $factory = (new ReflectionProperty(
-        \App\Services\Google\ApiclientCalendarEventsReader::class,
+        ApiclientCalendarEventsReader::class,
         'factory',
     ))->getValue($adapter);
 
-    expect($factory)->toBeInstanceOf(\App\Services\Google\GoogleClientFactory::class);
+    expect($factory)->toBeInstanceOf(GoogleClientFactory::class);
 });
 
 it('exposes listar_eventos_calendario through the tool registry', function () {
