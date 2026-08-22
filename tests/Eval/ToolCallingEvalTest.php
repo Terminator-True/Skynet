@@ -3,11 +3,13 @@
 namespace Tests\Eval;
 
 use App\Services\ChatOrchestrator;
+use App\Services\Gmail\GmailMessagesReader;
 use App\Services\Google\CalendarEventsReader;
 use App\Tools\ToolRegistry;
 use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\RequestInterface as Psr7Request;
 use Tests\Support\FakeCalendarEventsReader;
+use Tests\Support\FakeGmailMessagesReader;
 
 /**
  * Fase 0 acceptance gate (spec): 10 varied prompts against live Ollama,
@@ -139,6 +141,54 @@ it('runs the calendar-today case on live Ollama with strictly local egress', fun
     'Hardware eval disabled: set OLLAMA_EVAL=1 (and pull the model) to run.',
 );
 
+it('runs the amazon-extraction case on live Ollama with strictly local egress (egress-spy)', function () {
+    eval_skip_if_model_missing();
+
+    // Pre-bind the seam fake: the eval runs fully offline against Gmail; the
+    // email-derived body must never leave the local Ollama hop.
+    $body = 'Your Kindle Paperwhite has shipped! Carrier: Amazon Logistics. '
+        .'Tracking number: TBA301042955117EG. Status: Shipped.';
+    $fake = new FakeGmailMessagesReader;
+    $fake->getHandler = fn (): array => [
+        'subject' => 'Your package has been shipped!',
+        'from' => 'shipment-tracking@amazon.com',
+        'date' => 'Fri, 21 Aug 2026 10:00:00 -0300',
+        'body' => $body,
+    ];
+    app()->bind(GmailMessagesReader::class, fn (): FakeGmailMessagesReader => $fake);
+
+    // PRIVACY harness (spec §8): record every outbound request destination
+    // WITHOUT stubbing the live Ollama call.
+    $destinations = [];
+    Http::globalMiddleware(function ($handler) use (&$destinations) {
+        return function (Psr7Request $request, array $options) use ($handler, &$destinations) {
+            $destinations[] = (string) $request->getUri();
+
+            return $handler($request, $options);
+        };
+    });
+
+    $case = require __DIR__.'/Cases/case-14-egress-spy.php';
+
+    try {
+        $turn = app(ChatOrchestrator::class)->handle($case->prompt);
+    } catch (\Throwable $e) {
+        test()->fail('exception: '.mb_substr($e->getMessage(), 0, 140));
+    }
+
+    expect($turn->toArray()['tool_calls'])->not->toBeEmpty('extraer_tracking_amazon not called');
+
+    // EGRESS SPY (§8): every hop in this turn must target the local Ollama
+    // base URL — email-derived content may reach ONLY Laravel + local Ollama.
+    $ollamaBase = rtrim(config('ollama.base_url'), '/');
+    foreach ($destinations as $url) {
+        expect(str_starts_with($url, $ollamaBase))->toBeTrue("non-local egress detected: {$url}");
+    }
+})->skip(
+    fn (): bool => env('OLLAMA_EVAL') !== '1',
+    'Hardware eval disabled: set OLLAMA_EVAL=1 (and pull the model) to run.',
+);
+
 /**
  * Runs one case through the real orchestrator and judges it per spec.
  *
@@ -168,11 +218,11 @@ function eval_attempt(ChatOrchestrator $orchestrator, EvalCase $case, string $su
     ) ?: ($turn->reply === '' ? ['empty reply'] : []))];
 }
 
-/** @return list<EvalCase> exactly 13 cases: 11 tool-targeting + 2 no-tool */
+/** @return list<EvalCase> exactly 14 cases: 12 tool-targeting + 2 no-tool */
 function eval_load_cases(): array
 {
     $files = glob(__DIR__.'/Cases/case-*.php');
-    expect($files)->toBeArray()->toHaveCount(13);
+    expect($files)->toBeArray()->toHaveCount(14);
 
     return array_map(fn (string $file): EvalCase => require $file, $files);
 }

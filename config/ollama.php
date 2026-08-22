@@ -12,6 +12,10 @@ return [
     // Context window cap kept low (4-8k) to leave VRAM headroom on 12GB.
     'num_ctx' => (int) env('OLLAMA_NUM_CTX', 4096),
 
+    // Email bodies are trimmed to this many chars before the focused
+    // extraction prompt so it always fits inside num_ctx.
+    'extraction_char_cap' => (int) env('OLLAMA_EXTRACTION_CHAR_CAP', 6000),
+
     // Hard bound for the tool-calling loop; exhaustion returns a structured error.
     'max_tool_iterations' => (int) env('OLLAMA_MAX_TOOL_ITERATIONS', 4),
 
