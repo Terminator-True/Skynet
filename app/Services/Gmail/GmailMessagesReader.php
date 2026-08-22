@@ -14,7 +14,7 @@ interface GmailMessagesReader
     /**
      * @param  string  $query  Gmail search expression, e.g. "from:amazon.com"
      * @param  int  $maxResults  upper bound on returned messages (caller clamps)
-     * @return list<array{subject: string, from: string, snippet: string, date: string|null}>
+     * @return list<array{id: string, subject: string, from: string, snippet: string, date: string|null}>
      *
      * @throws GoogleTokenRefreshException no connection or missing gmail.readonly scope
      * @throws GoogleApiException transport / Google API failure

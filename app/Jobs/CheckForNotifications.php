@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Notifications\Rules\AmazonStatusChangeRule;
 use App\Notifications\Rules\CalendarEventRule;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -12,16 +13,19 @@ use Illuminate\Foundation\Queue\Queueable;
  * resolves the single owner (GoogleToken precedent — first user wins) and runs
  * the proactive rule services.
  *
- * Slice A ships the calendar rule only; AmazonStatusChangeRule joins in
- * Slice B. Requires `php artisan queue:work` to drain the database queue
- * (QUEUE_CONNECTION=database), alongside `php artisan schedule:work`.
+ * The single job dispatches both rule services — calendar events and Amazon
+ * package status changes. Requires `php artisan queue:work` to drain the
+ * database queue (QUEUE_CONNECTION=database), alongside `php artisan
+ * schedule:work`.
  */
 class CheckForNotifications implements ShouldQueue
 {
     use Queueable;
 
-    public function handle(CalendarEventRule $calendarRule): void
-    {
+    public function handle(
+        CalendarEventRule $calendarRule,
+        AmazonStatusChangeRule $amazonRule,
+    ): void {
         $user = User::query()->first();
 
         if ($user === null) {
@@ -29,5 +33,6 @@ class CheckForNotifications implements ShouldQueue
         }
 
         $calendarRule->run($user);
+        $amazonRule->run($user);
     }
 }
