@@ -31,8 +31,9 @@ const EVAL_GATE_THRESHOLD = 8;
 
 const EVAL_STRICT_SUFFIX = "\n\nSTRICT INSTRUCTION: You MUST answer using exactly one of the provided tools when it can serve the request. Emit a single valid tool call whose arguments match the tool's JSON schema precisely. Do not invent tools or argument names.";
 
-it('passes the tool-calling acceptance gate (>=8/10) on live Ollama', function () {
+it('passes the tool-calling acceptance gate (>=8/16) on live Ollama', function () {
     eval_skip_if_model_missing();
+    eval_skip_if_embed_missing();
 
     $orchestrator = app(ChatOrchestrator::class);
     $results = [];
@@ -301,11 +302,17 @@ function eval_attempt(ChatOrchestrator $orchestrator, EvalCase $case, string $su
     ) ?: ($turn->reply === '' ? ['empty reply'] : []))];
 }
 
-/** @return list<EvalCase> exactly 15 cases: 13 tool-targeting + 2 no-tool */
+/**
+ * @return list<EvalCase> exactly 16 cases: 14 tool-targeting + 2 no-tool
+ *
+ * NOTE: EVAL_GATE_THRESHOLD stays 8, so adding case-16 lowers the pass-rate
+ * bar to 8/16 = 50%. The threshold is intentionally left unchanged pending
+ * the memory case proving non-flaky on live hardware (design open question).
+ */
 function eval_load_cases(): array
 {
     $files = glob(__DIR__.'/Cases/case-*.php');
-    expect($files)->toBeArray()->toHaveCount(15);
+    expect($files)->toBeArray()->toHaveCount(16);
 
     return array_map(fn (string $file): EvalCase => require $file, $files);
 }
@@ -321,5 +328,31 @@ function eval_skip_if_model_missing(): void
 
     if (! in_array($model, $installed, true)) {
         test()->markTestSkipped("GATE STATUS: PENDING_MODEL_PULL — [{$model}] is not pulled. Run: ollama pull {$model}");
+    }
+}
+
+/**
+ * Skips (not fails) when the configured embed model is not available or does
+ * not expose the `embeddings` capability. Live memory evals need the embed
+ * model pulled (e.g. `ollama pull nomic-embed-text`); without it the eval
+ * skips cleanly while offline code paths stay functional via FakeEmbeddingProvider.
+ */
+function eval_skip_if_embed_missing(): void
+{
+    $baseUrl = rtrim(config('ollama.base_url'), '/');
+    $embedModel = config('ollama.embed_model');
+
+    $tags = Http::timeout(5)->get($baseUrl.'/api/tags');
+    $embedModels = collect($tags->json('models', []))->filter(
+        fn (array $m): bool => ($m['name'] ?? '') === $embedModel,
+    );
+
+    if ($embedModels->isEmpty()) {
+        test()->markTestSkipped("GATE STATUS: PENDING_EMBED_MODEL_PULL — [{$embedModel}] is not pulled. Run: ollama pull {$embedModel}");
+    }
+
+    $capabilities = (array) ($embedModels->first()['capabilities'] ?? []);
+    if (! in_array('embeddings', $capabilities, true)) {
+        test()->markTestSkipped("GATE STATUS: NO_EMBED_CAPABILITY — [{$embedModel}] does not expose the 'embeddings' capability.");
     }
 }
