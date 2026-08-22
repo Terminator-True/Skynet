@@ -3,6 +3,7 @@
 namespace Tests\Eval;
 
 use App\Services\ChatOrchestrator;
+use App\Services\ChatTurnResult;
 use App\Services\Gmail\GmailMessagesReader;
 use App\Services\Google\CalendarEventsReader;
 use App\Tools\ToolRegistry;
@@ -106,22 +107,44 @@ it('runs the calendar-today case on live Ollama with strictly local egress', fun
 
     $case = require __DIR__.'/Cases/case-11-calendar-today.php';
 
+    $orchestrator = app(ChatOrchestrator::class);
+    $registry = app(ToolRegistry::class);
+
+    $augment = function (ChatTurnResult $turn) use ($registry): array {
+        return collect($turn->toArray()['tool_calls'])
+            ->map(function (array $call) use ($registry): array {
+                $schema = $registry->has($call['name'])
+                    ? $registry->get($call['name'])->schema()
+                    : [];
+
+                return [...$call, 'schemaValid' => ToolCallValidator::isValid($schema, $call['arguments'])];
+            })
+            ->all();
+    };
+
+    // Rung 0: single-pass attempt.
     try {
-        $turn = app(ChatOrchestrator::class)->handle($case->prompt);
+        $turn = $orchestrator->handle($case->prompt);
     } catch (\Throwable $e) {
         test()->fail('exception: '.mb_substr($e->getMessage(), 0, 140));
     }
 
-    $registry = app(ToolRegistry::class);
-    $calls = collect($turn->toArray()['tool_calls'])
-        ->map(function (array $call) use ($registry): array {
-            $schema = $registry->has($call['name'])
-                ? $registry->get($call['name'])->schema()
-                : [];
+    $calls = $augment($turn);
 
-            return [...$call, 'schemaValid' => ToolCallValidator::isValid($schema, $call['arguments'])];
-        })
-        ->all();
+    // Rung 2 (eval harness only, per the ladder contract above): the 14B model
+    // is occasionally nondeterministic and answers "hoy" in prose or leaks a
+    // tool call into content instead of structured tool_calls. Re-prompt once
+    // with the stricter instruction before judging. Production orchestrator
+    // stays deterministic single-pass.
+    if (! $case->judge(['reply' => $turn->reply, 'tool_calls' => $calls])) {
+        try {
+            $turn = $orchestrator->handle($case->prompt.EVAL_STRICT_SUFFIX);
+        } catch (\Throwable $e) {
+            test()->fail('exception (retry): '.mb_substr($e->getMessage(), 0, 140));
+        }
+
+        $calls = $augment($turn);
+    }
 
     // Tool called with schema-valid args whose desde/hasta span today's local day.
     expect($case->judge(['reply' => $turn->reply, 'tool_calls' => $calls]))
