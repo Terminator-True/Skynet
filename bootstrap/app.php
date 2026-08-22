@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Jobs\CheckForNotifications;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Fase 5 proactive notifications (Roadmap §12): dispatch the sweep job
+    // every polling_interval_minutes. Laravel 13 has no Console Kernel — the
+    // schedule lives here. Dev runtime requires BOTH processes for delivery:
+    //   php artisan schedule:work   (scheduler dispatcher)
+    //   php artisan queue:work      (drains the database queue)
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->job(new CheckForNotifications)
+            ->everyFifteenMinutes();
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             HandleInertiaRequests::class,
