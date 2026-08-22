@@ -12,6 +12,7 @@ use App\Tools\BuscarCorreos;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
+use App\Tools\ExtraerTrackingAmazon;
 use App\Tools\LeerCorreo;
 use App\Tools\ListarEventosCalendario;
 use App\Tools\ToolRegistry;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register($this->app->make(ListarEventosCalendario::class));
             $registry->register($this->app->make(BuscarCorreos::class));
             $registry->register($this->app->make(LeerCorreo::class));
+            $registry->register($this->app->make(ExtraerTrackingAmazon::class));
 
             return $registry;
         });
