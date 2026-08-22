@@ -13,13 +13,16 @@ const props = defineProps<Props>();
 
 const errorMessages: Record<string, string> = {
     denied: 'Google consent was denied. Connect again to retry.',
-    state_mismatch: 'Security check failed (state mismatch). Start the connection again.',
-    exchange_failed: 'Could not exchange the authorization code with Google. Try again.',
+    state_mismatch:
+        'Security check failed (state mismatch). Start the connection again.',
+    exchange_failed:
+        'Could not exchange the authorization code with Google. Try again.',
 };
 
-const errorMessage = props.googleError !== null && props.googleError in errorMessages
-    ? errorMessages[props.googleError]
-    : null;
+const errorMessage =
+    props.googleError != null && props.googleError in errorMessages
+        ? errorMessages[props.googleError]
+        : null;
 
 function formatExpiry(iso: string): string {
     return new Date(iso).toLocaleString();
@@ -61,7 +64,9 @@ function formatExpiry(iso: string): string {
             >
                 <h2 class="text-sm font-medium">Connected</h2>
                 <p class="text-sm">{{ email }}</p>
-                <ul class="flex list-inside list-disc flex-col gap-1 text-xs opacity-80">
+                <ul
+                    class="flex list-inside list-disc flex-col gap-1 text-xs opacity-80"
+                >
                     <li v-for="scope in scopes" :key="scope">{{ scope }}</li>
                 </ul>
                 <p v-if="expiresAt" class="text-xs opacity-80">
@@ -74,8 +79,8 @@ function formatExpiry(iso: string): string {
                 class="flex flex-col gap-4 rounded-lg border border-[#e3e3e0] p-6 dark:border-[#3E3E3A]"
             >
                 <p class="text-sm">
-                    The Google connection needs to be renewed — the stored access token is no longer
-                    usable.
+                    The Google connection needs to be renewed — the stored
+                    access token is no longer usable.
                 </p>
                 <a
                     href="/auth/google/redirect"

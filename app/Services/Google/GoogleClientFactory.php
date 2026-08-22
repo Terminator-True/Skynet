@@ -20,9 +20,7 @@ class GoogleClientFactory
 {
     private const EXPIRY_BUFFER_SECONDS = 60;
 
-    public function __construct(private readonly GoogleOAuthClient $oauth)
-    {
-    }
+    public function __construct(private readonly GoogleOAuthClient $oauth) {}
 
     /**
      * @throws GoogleTokenRefreshException when no connection exists or the refresh grant is rejected

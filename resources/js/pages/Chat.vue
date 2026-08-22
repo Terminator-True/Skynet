@@ -32,14 +32,18 @@ async function send(): Promise<void> {
     try {
         const response = await fetch('/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
             body: JSON.stringify({ message: message.value }),
         });
 
         const payload = await response.json();
 
         if (!response.ok) {
-            error.value = payload.message ?? `Request failed (HTTP ${response.status}).`;
+            error.value =
+                payload.message ?? `Request failed (HTTP ${response.status}).`;
 
             return;
         }
@@ -80,21 +84,40 @@ async function send(): Promise<void> {
                 </button>
             </form>
 
-            <p v-if="error" role="alert" class="rounded-lg bg-red-100 p-3 text-sm text-red-700">
+            <p
+                v-if="error"
+                role="alert"
+                class="rounded-lg bg-red-100 p-3 text-sm text-red-700"
+            >
                 {{ error }}
             </p>
 
             <section v-if="reply !== null" class="flex flex-col gap-4">
-                <div class="rounded-lg border border-[#e3e3e0] p-4 text-sm dark:border-[#3E3E3A]">
-                    <h2 class="mb-1 text-xs font-medium uppercase tracking-wide text-[#706f6c]">Reply</h2>
+                <div
+                    class="rounded-lg border border-[#e3e3e0] p-4 text-sm dark:border-[#3E3E3A]"
+                >
+                    <h2
+                        class="mb-1 text-xs font-medium tracking-wide text-[#706f6c] uppercase"
+                    >
+                        Reply
+                    </h2>
                     <p>{{ reply }}</p>
                 </div>
 
-                <div v-if="toolCalls.length > 0" class="rounded-lg border border-dashed border-[#e3e3e0] p-4 text-xs dark:border-[#3E3E3A]">
-                    <h2 class="mb-2 font-medium uppercase tracking-wide text-[#706f6c]">Tool call trace</h2>
+                <div
+                    v-if="toolCalls.length > 0"
+                    class="rounded-lg border border-dashed border-[#e3e3e0] p-4 text-xs dark:border-[#3E3E3A]"
+                >
+                    <h2
+                        class="mb-2 font-medium tracking-wide text-[#706f6c] uppercase"
+                    >
+                        Tool call trace
+                    </h2>
                     <ol class="flex list-decimal flex-col gap-2 pl-5">
                         <li v-for="(call, index) in toolCalls" :key="index">
-                            <span class="font-mono font-semibold">{{ call.name }}</span>
+                            <span class="font-mono font-semibold">{{
+                                call.name
+                            }}</span>
                             <span class="mx-1 text-[#706f6c]">with</span>
                             <code>{{ JSON.stringify(call.arguments) }}</code>
                             <span class="mx-1 text-[#706f6c]">→</span>
