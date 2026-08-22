@@ -185,6 +185,10 @@ it('surfaces the message id in the search DTO so bodies can be re-fetched', func
     );
     Http::fake(['*/api/chat' => Http::response(ollama_status('out for delivery'))]);
 
+    // Offline: this test inspects the search DTO, not delivery — fake the
+    // broadcast so the sweep never opens a Reverb connection.
+    Event::fake([NotificationCreated::class]);
+
     app(AmazonStatusChangeRule::class)->run($user);
 
     expect($fake->calls[0]['op'])->toBe('search')

@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         apiPrefix: '',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
     // Fase 5 proactive notifications (Roadmap §12): dispatch the sweep job
@@ -22,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
     // schedule lives here. Dev runtime requires BOTH processes for delivery:
     //   php artisan schedule:work   (scheduler dispatcher)
     //   php artisan queue:work      (drains the database queue)
+    // Plus Reverb for realtime push: `php artisan reverb:start` needs the
+    // `websockets` PECL extension (Reverb 1.x) — see config/reverb.php. Without
+    // it the server won't boot, but offline tests (Event::fake) stay green.
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->job(new CheckForNotifications)
             ->everyFifteenMinutes();

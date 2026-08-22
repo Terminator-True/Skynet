@@ -38,6 +38,10 @@ it('creates one user and one encrypted token row on first successful connect', f
     expect(User::count())->toBe(1)
         ->and(GoogleToken::count())->toBe(1);
 
+    // Fase 5 channel auth: the owner is auto-logged-in after the callback so
+    // /broadcasting/auth can resolve them (Design open-question decision).
+    expect(auth()->id())->toBe(User::first()->id);
+
     $row = DB::table('google_tokens')->first();
 
     expect($row->access_token)->not->toBe('at-good-code') // ciphertext at rest

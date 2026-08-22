@@ -8,6 +8,7 @@ use App\Services\Google\GoogleApiException;
 use App\Services\Google\GoogleOAuthClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -60,7 +61,9 @@ class GoogleOAuthController extends Controller
             return $this->fail($request, 'exchange_failed');
         }
 
-        DB::transaction(function () use ($payload): void {
+        $user = null;
+
+        DB::transaction(function () use ($payload, &$user): void {
             // D2: first user wins; create the single owner row when none exists.
             $user = User::query()->first() ?? User::create([
                 'name' => 'Owner',
@@ -77,6 +80,15 @@ class GoogleOAuthController extends Controller
                 ],
             );
         });
+
+        // Realtime channel auth (Fase 5, Design open question): Laravel resolves
+        // the channel-authentication user from the web guard BEFORE any channel
+        // closure runs, so /broadcasting/auth needs an authenticated session.
+        // Single-tenant "first user wins" → auto-login the owner right after the
+        // OAuth callback (least-invasive: one line, no custom guard/middleware).
+        if ($user !== null) {
+            Auth::login($user);
+        }
 
         return redirect()->route('connect');
     }

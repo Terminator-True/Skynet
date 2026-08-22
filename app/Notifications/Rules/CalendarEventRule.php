@@ -60,7 +60,14 @@ class CalendarEventRule
             );
 
             if ($notification->wasRecentlyCreated) {
-                NotificationCreated::dispatch($user->id, $notification->payload);
+                NotificationCreated::dispatch($user->id, [
+                    'id' => $notification->id,
+                    'title' => $notification->payload['title'],
+                    'body' => ($notification->payload['location'] ?? '') !== ''
+                        ? "Starts at {$notification->payload['start']} — {$notification->payload['location']}"
+                        : "Starts at {$notification->payload['start']}",
+                    'created_at' => $notification->created_at?->toISOString(),
+                ]);
             }
         }
     }
