@@ -22,6 +22,7 @@ class ChatOrchestrator
     public function __construct(
         private readonly OllamaClient $client,
         private readonly ToolRegistry $registry,
+        private readonly MemoryService $memory,
     ) {}
 
     /**
@@ -32,7 +33,7 @@ class ChatOrchestrator
         $maxIterations = (int) config('ollama.max_tool_iterations', 4);
 
         $messages = [
-            ['role' => 'system', 'content' => $this->buildSystemPrompt()],
+            ['role' => 'system', 'content' => $this->buildSystemPrompt($userMessage)],
             ['role' => 'user', 'content' => $userMessage],
         ];
 
@@ -78,15 +79,29 @@ class ChatOrchestrator
      * Builds the system prompt fresh on every request with the current
      * datetime in the user's timezone, so the model can resolve relative
      * expressions like "hoy" into concrete desde/hasta tool arguments.
-     * Nothing caches prompts, so the per-request build costs nothing.
+     * Recalled preferences are appended when relevant so stateless turns stay
+     * memory-aware. Nothing caches prompts, so the per-request build costs
+     * nothing.
      */
-    private function buildSystemPrompt(): string
+    private function buildSystemPrompt(string $userMessage): string
     {
         $now = now(config('app.assistant_timezone'));
 
-        return self::SYSTEM_PROMPT_BASE.' Current date/time: '
+        $prompt = self::SYSTEM_PROMPT_BASE.' Current date/time: '
             .$now->format('l, Y-m-d H:i').' ('.$now->getTimezone()->getName().'). '
             ."Use this to resolve relative dates like 'today'.";
+
+        $recalled = $this->memory->recall(
+            $userMessage,
+            (int) config('ollama.memory_recall_top_k', 3),
+            (int) config('ollama.memory_recall_char_cap', 200),
+        );
+
+        if ($recalled !== '') {
+            $prompt .= " Remembered preferences:\n".$recalled;
+        }
+
+        return $prompt;
     }
 
     /**

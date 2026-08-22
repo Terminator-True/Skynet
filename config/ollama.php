@@ -22,4 +22,11 @@ return [
     // Eval opt-in: plain `pest` runs never touch hardware.
     'eval_enabled' => (bool) env('OLLAMA_EVAL', false),
 
+    // Embedding model for long-term preference memory (Fase 6, local-only).
+    'embed_model' => env('OLLAMA_EMBED_MODEL', 'nomic-embed-text'),
+
+    // Recall bounds for prompt injection: top-k entries, each char-capped.
+    'memory_recall_top_k' => 3,
+    'memory_recall_char_cap' => 200,
+
 ];

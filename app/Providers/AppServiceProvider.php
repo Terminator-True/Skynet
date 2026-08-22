@@ -8,6 +8,8 @@ use App\Services\Google\ApiclientCalendarEventsReader;
 use App\Services\Google\ApiclientGoogleOAuthClient;
 use App\Services\Google\CalendarEventsReader;
 use App\Services\Google\GoogleOAuthClient;
+use App\Services\Ollama\EmbeddingProvider;
+use App\Services\Ollama\OllamaEmbedClient;
 use App\Services\Web\Ddg\DdgInstantAnswerReader;
 use App\Services\Web\FallbackWebKnowledgeReader;
 use App\Services\Web\WebKnowledgeReader;
@@ -65,6 +67,10 @@ class AppServiceProvider extends ServiceProvider
                 new WikipediaReader,
             );
         });
+
+        // Embedding seam: Ollama /api/embed is plain Laravel Http, so tests
+        // bind FakeEmbeddingProvider here for zero-egress offline runs.
+        $this->app->bind(EmbeddingProvider::class, OllamaEmbedClient::class);
     }
 
     /**
