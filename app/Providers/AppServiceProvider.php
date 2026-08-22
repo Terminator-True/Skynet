@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Google\ApiclientGoogleOAuthClient;
+use App\Services\Google\GoogleOAuthClient;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
 
             return $registry;
         });
+
+        // Vendor seam: tests bind fakes here (Http::fake cannot intercept
+        // google/apiclient's internal Guzzle).
+        $this->app->bind(GoogleOAuthClient::class, ApiclientGoogleOAuthClient::class);
     }
 
     /**
