@@ -24,9 +24,7 @@ class GoogleOAuthController extends Controller
 {
     private const SESSION_STATE_KEY = 'google_oauth_state';
 
-    public function __construct(private readonly GoogleOAuthClient $oauth)
-    {
-    }
+    public function __construct(private readonly GoogleOAuthClient $oauth) {}
 
     /**
      * Send the browser to Google consent (offline access, forced consent).

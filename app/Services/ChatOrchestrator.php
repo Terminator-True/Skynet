@@ -14,7 +14,7 @@ use App\Tools\ToolRegistry;
  */
 class ChatOrchestrator
 {
-    private const SYSTEM_PROMPT = 'You are a helpful personal assistant. '
+    private const SYSTEM_PROMPT_BASE = 'You are a helpful personal assistant. '
         .'Use the provided tools whenever they can answer the user request. '
         .'When you call tools, wait for their results before answering. '
         .'If no tool is needed, answer directly in natural language.';
@@ -32,7 +32,7 @@ class ChatOrchestrator
         $maxIterations = (int) config('ollama.max_tool_iterations', 4);
 
         $messages = [
-            ['role' => 'system', 'content' => self::SYSTEM_PROMPT],
+            ['role' => 'system', 'content' => $this->buildSystemPrompt()],
             ['role' => 'user', 'content' => $userMessage],
         ];
 
@@ -72,6 +72,21 @@ class ChatOrchestrator
         throw new ChatLoopExhaustedException(
             "Model exceeded the tool-call iteration cap of {$maxIterations}.",
         );
+    }
+
+    /**
+     * Builds the system prompt fresh on every request with the current
+     * datetime in the user's timezone, so the model can resolve relative
+     * expressions like "hoy" into concrete desde/hasta tool arguments.
+     * Nothing caches prompts, so the per-request build costs nothing.
+     */
+    private function buildSystemPrompt(): string
+    {
+        $now = now(config('app.assistant_timezone'));
+
+        return self::SYSTEM_PROMPT_BASE.' Current date/time: '
+            .$now->format('l, Y-m-d H:i').' ('.$now->getTimezone()->getName().'). '
+            ."Use this to resolve relative dates like 'today'.";
     }
 
     /**

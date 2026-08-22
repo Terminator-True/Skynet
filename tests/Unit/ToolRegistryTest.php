@@ -94,13 +94,13 @@ it('proves a fourth tool registers with zero orchestrator edits', function () {
         }
     };
 
-    // The container-bound registry ships with the 3 dummy tools.
+    // The container-bound registry ships with the 3 dummy tools + the calendar tool.
     $registry = app(ToolRegistry::class);
-    expect(count($registry->all()))->toBe(3);
+    expect(count($registry->all()))->toBe(4);
 
     $registry->register($fourth);
 
-    expect(count($registry->all()))->toBe(4)
+    expect(count($registry->all()))->toBe(5)
         ->and($registry->has('echo_fourth'))->toBeTrue()
         ->and(collect($registry->definitions())->pluck('function.name'))->toContain('echo_fourth');
 });
