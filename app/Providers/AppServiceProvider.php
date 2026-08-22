@@ -8,7 +8,12 @@ use App\Services\Google\ApiclientCalendarEventsReader;
 use App\Services\Google\ApiclientGoogleOAuthClient;
 use App\Services\Google\CalendarEventsReader;
 use App\Services\Google\GoogleOAuthClient;
+use App\Services\Web\Ddg\DdgInstantAnswerReader;
+use App\Services\Web\FallbackWebKnowledgeReader;
+use App\Services\Web\WebKnowledgeReader;
+use App\Services\Web\Wikipedia\WikipediaReader;
 use App\Tools\BuscarCorreos;
+use App\Tools\BuscarWeb;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
@@ -38,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register($this->app->make(BuscarCorreos::class));
             $registry->register($this->app->make(LeerCorreo::class));
             $registry->register($this->app->make(ExtraerTrackingAmazon::class));
+            $registry->register($this->app->make(BuscarWeb::class));
 
             return $registry;
         });
@@ -49,6 +55,16 @@ class AppServiceProvider extends ServiceProvider
         // Vendor seam: tests bind fakes here (apiclient Guzzle bypasses Http::fake).
         $this->app->bind(CalendarEventsReader::class, ApiclientCalendarEventsReader::class);
         $this->app->bind(GmailMessagesReader::class, ApiclientGmailMessagesReader::class);
+
+        // Web seam: plain Laravel Http (Http::fake intercepts directly). Bound
+        // via a factory closure so the composite's two WebKnowledgeReader deps
+        // resolve to the concrete leaf adapters, not back to the interface.
+        $this->app->bind(WebKnowledgeReader::class, function (): WebKnowledgeReader {
+            return new FallbackWebKnowledgeReader(
+                new DdgInstantAnswerReader,
+                new WikipediaReader,
+            );
+        });
     }
 
     /**
