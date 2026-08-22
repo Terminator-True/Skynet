@@ -6,6 +6,8 @@ use App\Services\ChatOrchestrator;
 use App\Services\ChatTurnResult;
 use App\Services\Gmail\GmailMessagesReader;
 use App\Services\Google\CalendarEventsReader;
+use App\Services\Web\FallbackWebKnowledgeReader;
+use App\Services\Web\WebKnowledgeReader;
 use App\Tools\ToolRegistry;
 use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\RequestInterface as Psr7Request;
@@ -212,6 +214,64 @@ it('runs the amazon-extraction case on live Ollama with strictly local egress (e
     'Hardware eval disabled: set OLLAMA_EVAL=1 (and pull the model) to run.',
 );
 
+it('runs the web-search case on live Ollama with bounded external egress (web egress-spy)', function () {
+    eval_skip_if_model_missing();
+
+    // Bind the REAL composite (not a fake): the buscar_web flow makes actual
+    // outbound DDG/Wikipedia calls that must be observed and asserted. This is
+    // the explicit OPPOSITE of case-11/14's strictly-local egress assertion.
+    $composite = app(WebKnowledgeReader::class);
+    expect($composite)->toBeInstanceOf(FallbackWebKnowledgeReader::class);
+
+    // PRIVACY harness (spec §8): record every outbound request destination
+    // WITHOUT stubbing the live Ollama call.
+    $destinations = [];
+    Http::globalMiddleware(function ($handler) use (&$destinations) {
+        return function (Psr7Request $request, array $options) use ($handler, &$destinations) {
+            $destinations[] = (string) $request->getUri();
+
+            return $handler($request, $options);
+        };
+    });
+
+    $case = require __DIR__.'/Cases/case-15-web-search.php';
+
+    try {
+        $turn = app(ChatOrchestrator::class)->handle($case->prompt);
+    } catch (\Throwable $e) {
+        test()->fail('exception: '.mb_substr($e->getMessage(), 0, 140));
+    }
+
+    $calls = collect($turn->toArray()['tool_calls'])
+        ->map(function (array $call): array {
+            $schema = app(ToolRegistry::class)->has($call['name'])
+                ? app(ToolRegistry::class)->get($call['name'])->schema()
+                : [];
+
+            return [...$call, 'schemaValid' => ToolCallValidator::isValid($schema, $call['arguments'])];
+        })
+        ->all();
+
+    expect($case->judge(['reply' => $turn->reply, 'tool_calls' => $calls]))
+        ->toBeTrue('buscar_web not called correctly for the factual query');
+
+    // EGRESS SPY (§8): a web turn may reach ONLY local Ollama plus the
+    // configured DDG and Wikipedia hosts — nothing else.
+    $ollamaBase = rtrim(config('ollama.base_url'), '/');
+    $ddgBase = rtrim(config('web.ddg_base_url'), '/');
+    $wikiBase = rtrim(config('web.wiki_base_url'), '/');
+    expect($destinations)->not->toBeEmpty('no outbound egress observed for the web turn');
+    foreach ($destinations as $url) {
+        $allowed = str_starts_with($url, $ollamaBase)
+            || str_starts_with($url, $ddgBase)
+            || str_starts_with($url, $wikiBase);
+        expect($allowed)->toBeTrue("unexpected egress destination: {$url}");
+    }
+})->skip(
+    fn (): bool => env('OLLAMA_EVAL') !== '1',
+    'Hardware eval disabled: set OLLAMA_EVAL=1 (and pull the model) to run.',
+);
+
 /**
  * Runs one case through the real orchestrator and judges it per spec.
  *
@@ -241,11 +301,11 @@ function eval_attempt(ChatOrchestrator $orchestrator, EvalCase $case, string $su
     ) ?: ($turn->reply === '' ? ['empty reply'] : []))];
 }
 
-/** @return list<EvalCase> exactly 14 cases: 12 tool-targeting + 2 no-tool */
+/** @return list<EvalCase> exactly 15 cases: 13 tool-targeting + 2 no-tool */
 function eval_load_cases(): array
 {
     $files = glob(__DIR__.'/Cases/case-*.php');
-    expect($files)->toBeArray()->toHaveCount(14);
+    expect($files)->toBeArray()->toHaveCount(15);
 
     return array_map(fn (string $file): EvalCase => require $file, $files);
 }
