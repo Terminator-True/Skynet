@@ -168,11 +168,11 @@ function eval_attempt(ChatOrchestrator $orchestrator, EvalCase $case, string $su
     ) ?: ($turn->reply === '' ? ['empty reply'] : []))];
 }
 
-/** @return list<EvalCase> exactly 11 cases: 9 tool-targeting + 2 no-tool */
+/** @return list<EvalCase> exactly 13 cases: 11 tool-targeting + 2 no-tool */
 function eval_load_cases(): array
 {
     $files = glob(__DIR__.'/Cases/case-*.php');
-    expect($files)->toBeArray()->toHaveCount(11);
+    expect($files)->toBeArray()->toHaveCount(13);
 
     return array_map(fn (string $file): EvalCase => require $file, $files);
 }

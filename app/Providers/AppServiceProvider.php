@@ -2,13 +2,17 @@
 
 namespace App\Providers;
 
+use App\Services\Gmail\ApiclientGmailMessagesReader;
+use App\Services\Gmail\GmailMessagesReader;
 use App\Services\Google\ApiclientCalendarEventsReader;
 use App\Services\Google\ApiclientGoogleOAuthClient;
 use App\Services\Google\CalendarEventsReader;
 use App\Services\Google\GoogleOAuthClient;
+use App\Tools\BuscarCorreos;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
+use App\Tools\LeerCorreo;
 use App\Tools\ListarEventosCalendario;
 use App\Tools\ToolRegistry;
 use Carbon\CarbonImmutable;
@@ -30,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
             $registry->register(new CalculateSum);
             $registry->register(new GetWeatherMock);
             $registry->register($this->app->make(ListarEventosCalendario::class));
+            $registry->register($this->app->make(BuscarCorreos::class));
+            $registry->register($this->app->make(LeerCorreo::class));
 
             return $registry;
         });
@@ -40,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Vendor seam: tests bind fakes here (apiclient Guzzle bypasses Http::fake).
         $this->app->bind(CalendarEventsReader::class, ApiclientCalendarEventsReader::class);
+        $this->app->bind(GmailMessagesReader::class, ApiclientGmailMessagesReader::class);
     }
 
     /**
