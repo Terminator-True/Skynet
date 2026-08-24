@@ -22,6 +22,7 @@ use App\Tools\Dummy\GetWeatherMock;
 use App\Tools\ExtraerTrackingAmazon;
 use App\Tools\LeerCorreo;
 use App\Tools\ListarEventosCalendario;
+use App\Tools\RecordarPreferencia;
 use App\Tools\ToolRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register($this->app->make(LeerCorreo::class));
             $registry->register($this->app->make(ExtraerTrackingAmazon::class));
             $registry->register($this->app->make(BuscarWeb::class));
+            $registry->register($this->app->make(RecordarPreferencia::class));
 
             return $registry;
         });
