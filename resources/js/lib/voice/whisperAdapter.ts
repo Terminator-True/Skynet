@@ -1,8 +1,6 @@
 import { ModelManager, WhisperWasmService } from '@timur00kh/whisper.wasm';
+import { VOICE_LANGUAGE, WHISPER_MODEL_FILE } from './config';
 import type { VoiceEngine } from './types';
-
-const VOICE_LANGUAGE = 'es';
-const WHISPER_MODEL_FILE = '/models/ggml-tiny.bin';
 
 /**
  * Builds a VoiceEngine whose STT uses whisper.wasm with a model served
@@ -45,9 +43,9 @@ export async function createWhisperEngine(
 
             return segments.join(' ').trim();
         },
-        // Piper TTS lands in Slice B; return an empty WAV placeholder for now.
+        // TTS is provided by piperAdapter (Slice B); this engine only transcribes.
         async synthesize() {
-            return new Blob([], { type: 'audio/wav' });
+            throw new Error('Whisper engine does not synthesize.');
         },
     };
 }

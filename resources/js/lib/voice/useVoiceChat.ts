@@ -1,8 +1,7 @@
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { VOICE_LANGUAGE } from './config';
 import type { ChatPost, MicOps, VoiceChatState, VoiceEngine } from './types';
-
-const VOICE_LANGUAGE = 'es';
 
 const STATUS_LABELS: Record<VoiceChatState, string> = {
     idle: 'Press and hold to talk',
@@ -27,15 +26,38 @@ export interface UseVoiceChat {
     sendText: (message: string) => Promise<void>;
 }
 
+/** Play a synthesized WAV Blob through an <audio> element. */
+function defaultPlayAudio(blob: Blob): Promise<void> {
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+
+    return new Promise<void>((resolve, reject) => {
+        audio.onended = () => {
+            URL.revokeObjectURL(url);
+            resolve();
+        };
+        audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Audio playback failed.'));
+        };
+        void audio.play().catch(() => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Audio playback failed.'));
+        });
+    });
+}
+
 /**
  * Pure state-machine composable for voice chat. `getEngine`, `chatPost`, and
  * `mic` are injected so the transitions stay deterministic and testable
- * without real WASM or hardware.
+ * without real WASM or hardware. `playAudio` defaults to <audio> playback and
+ * is injectable so tests can observe the synthesize→play→idle transitions.
  */
 export function useVoiceChat(
     getEngine: () => VoiceEngine | null,
     chatPost: ChatPost,
     mic: MicOps,
+    playAudio: (blob: Blob) => Promise<void> = defaultPlayAudio,
 ): UseVoiceChat {
     const state = ref<VoiceChatState>('idle');
     const error = ref<string | null>(null);
@@ -132,6 +154,23 @@ export function useVoiceChat(
             const replyText = await chatPost(message);
 
             reply.value = replyText;
+
+            const engine = getEngine();
+
+            // Text fallback / greeting without a voice engine: show the text
+            // reply only. When an engine is present, synthesize and speak it.
+            if (engine === null) {
+                state.value = 'idle';
+
+                return;
+            }
+
+            state.value = 'synthesizing';
+
+            const wav = await engine.synthesize(replyText);
+
+            state.value = 'playing';
+            await playAudio(wav);
 
             state.value = 'idle';
         } catch (e) {

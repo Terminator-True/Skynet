@@ -1,7 +1,6 @@
 import { convertFromMediaStream } from '@timur00kh/whisper.wasm';
+import { TARGET_SAMPLE_RATE } from './config';
 import type { MicOps } from './types';
-
-const TARGET_SAMPLE_RATE = 16000;
 
 let activeStream: MediaStream | null = null;
 
