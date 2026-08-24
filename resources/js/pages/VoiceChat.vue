@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 import { GREETING_CHIPS } from '@/lib/voice/greetings';
 import { defaultMic } from '@/lib/voice/mic';
+import { createPiperEngine } from '@/lib/voice/piperAdapter';
 import type { VoiceEngine } from '@/lib/voice/types';
 import { useVoiceChat } from '@/lib/voice/useVoiceChat';
 import { createWhisperEngine } from '@/lib/voice/whisperAdapter';
@@ -79,9 +80,18 @@ function sendFallback(): void {
 
 onMounted(async () => {
     try {
-        engine.value = await createWhisperEngine((progress) => {
+        // Real engine wiring: whisper for STT, piper for TTS, exposed through
+        // the single VoiceEngine seam the state machine drives.
+        const whisper = await createWhisperEngine((progress) => {
             modelProgress.value = progress;
         });
+        const piper = await createPiperEngine();
+
+        engine.value = {
+            transcribe: (audio, language, onProgress) =>
+                whisper.transcribe(audio, language, onProgress),
+            synthesize: (text) => piper.synthesize(text),
+        };
     } catch {
         engineFailed.value = true;
         showFallback.value = true;

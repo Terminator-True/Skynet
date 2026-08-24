@@ -10,6 +10,7 @@
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
+        "postinstall": "patch-package",
         "types:check": "vue-tsc --noEmit"
     },
     "devDependencies": {
@@ -18,19 +19,24 @@
         "@stylistic/eslint-plugin": "^5.10.0",
         "@types/node": "^22.13.5",
         "@vue/eslint-config-typescript": "^14.3.0",
+        "@vue/test-utils": "^2.4.11",
         "eslint": "^9.17.0",
         "eslint-config-prettier": "^10.0.1",
         "eslint-import-resolver-typescript": "^4.4.4",
         "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-vue": "^9.32.0",
+        "happy-dom": "^20.11.6",
+        "patch-package": "^8.0.1",
         "prettier": "^3.4.2",
         "prettier-plugin-tailwindcss": "^0.6.11",
         "typescript-eslint": "^8.23.0",
+        "vitest": "^4.1.11",
         "vue-tsc": "^2.2.4"
     },
     "dependencies": {
         "@inertiajs/vite": "^3.0.0",
         "@inertiajs/vue3": "^3.0.0",
+        "@mintplex-labs/piper-tts-web": "^1.0.5",
         "@tailwindcss/vite": "^4.1.11",
         "@timur00kh/whisper.wasm": "^0.1.1",
         "@vitejs/plugin-vue": "^6.0.0",
