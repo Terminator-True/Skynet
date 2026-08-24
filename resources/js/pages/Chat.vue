@@ -66,7 +66,12 @@ async function send(): Promise<void> {
         class="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]"
     >
         <main class="flex w-full max-w-2xl flex-col gap-6 pt-10">
-            <h1 class="text-2xl font-semibold">Skynet Assistant</h1>
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-semibold">Skynet Assistant</h1>
+                <a href="/voice" class="text-sm text-[#706f6c] underline"
+                    >Voice</a
+                >
+            </div>
 
             <form class="flex gap-2" @submit.prevent="send">
                 <input

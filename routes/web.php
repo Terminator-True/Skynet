@@ -7,6 +7,8 @@ Route::inertia('/', 'Welcome')->name('home');
 
 Route::inertia('/chat', 'Chat')->name('chat');
 
+Route::inertia('/voice', 'VoiceChat')->name('voice');
+
 Route::get('/auth/google/redirect', [GoogleOAuthController::class, 'redirect'])
     ->name('google.redirect');
 

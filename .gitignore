@@ -4,6 +4,7 @@
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
+/public/models
 /public/storage
 /resources/js/actions
 /resources/js/routes
