@@ -31,4 +31,10 @@ export const defaultMic: MicOps = {
 
         return audioData;
     },
+    // Streaming chunk capture for wake-word detection. The real 16kHz
+    // AudioWorklet/script-processor implementation ships with Slice B; this
+    // placeholder keeps the MicOps contract satisfied until then.
+    startCapture() {
+        return () => {};
+    },
 };
