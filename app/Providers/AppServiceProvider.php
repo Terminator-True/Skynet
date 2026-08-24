@@ -15,6 +15,7 @@ use App\Services\Web\FallbackWebKnowledgeReader;
 use App\Services\Web\WebKnowledgeReader;
 use App\Services\Web\Wikipedia\WikipediaReader;
 use App\Tools\BuscarCorreos;
+use App\Tools\BuscarNotas;
 use App\Tools\BuscarWeb;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
@@ -48,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register($this->app->make(ExtraerTrackingAmazon::class));
             $registry->register($this->app->make(BuscarWeb::class));
             $registry->register($this->app->make(RecordarPreferencia::class));
+            $registry->register($this->app->make(BuscarNotas::class));
 
             return $registry;
         });
