@@ -6,10 +6,16 @@ use App\Services\Ollama\OllamaClient;
 use App\Tools\ToolRegistry;
 
 /**
- * Stateless single-pass tool-calling loop.
+ * Tool-calling loop with a single corrective retry.
  *
- * Deterministic by design: NO retries here — retry ladders live in the eval
- * harness only, so Fase 0 measures raw reliability. Bounded by
+ * The 14B local model is occasionally nondeterministic: instead of emitting a
+ * structured `tool_calls` array, it writes the tool call inline in the reply
+ * text (e.g. `_icall_ {"name": ..., "arguments": ...}`). When the first pass
+ * returns no structured tool calls but the reply text signals a tool intent,
+ * we re-prompt ONCE with a strict instruction that the call must go in the
+ * structured field. This is the production-side mirror of the eval harness
+ * rung-2 retry; it makes real questions like "¿qué pone en mi último email?"
+ * resolve more reliably without unbounded retries. Bounded by
  * max_tool_iterations; exhaustion raises a structured error.
  */
 class ChatOrchestrator
@@ -18,6 +24,9 @@ class ChatOrchestrator
         .'Use the provided tools whenever they can answer the user request. '
         .'When you call tools, wait for their results before answering. '
         .'If no tool is needed, answer directly in natural language.';
+
+    /** Emitted when the model leaks a tool call into the reply text. */
+    private const TOOL_RETRY_SUFFIX = "\n\nIMPORTANT: emit the tool call as a STRUCTURED tool_calls field with its real arguments — never write a tool invocation inside your reply text. If you intended to call a tool, do so now properly.";
 
     public function __construct(
         private readonly OllamaClient $client,
@@ -44,6 +53,23 @@ class ChatOrchestrator
             $response = $this->client->chat($messages, $this->registry->definitions());
 
             if ($response['tool_calls'] === []) {
+                // No structured tool call. If the reply text signals a leaked
+                // inline tool call, retry once with a strict instruction; the
+                // model sometimes writes `_icall_ {...}` instead of populating
+                // tool_calls. Otherwise return the plain-text answer.
+                if ($iteration === 0 && self::looksLikeInlineToolCall($response['content'])) {
+                    $messages[] = [
+                        'role' => 'assistant',
+                        'content' => $response['content'],
+                    ];
+                    $messages[] = [
+                        'role' => 'user',
+                        'content' => self::TOOL_RETRY_SUFFIX,
+                    ];
+
+                    continue;
+                }
+
                 return new ChatTurnResult(
                     reply: $this->finalReply($response['content']),
                     toolCalls: $trace,
@@ -207,5 +233,23 @@ class ChatOrchestrator
         // Defensive: shouldn't happen with well-behaved models, but never 500
         // on blank final content after successful tool runs.
         return '(The model returned an empty answer.)';
+    }
+
+    /**
+     * Heuristic: did the model write a tool invocation inline in the reply
+     * text instead of the structured tool_calls field? Matches the `_icall_`
+     * marker the 14B model sometimes emits, plus a bare JSON object that names
+     * one of the registered tools. A false positive only costs one retry.
+     */
+    private static function looksLikeInlineToolCall(string $content): bool
+    {
+        if (str_contains($content, '_icall_')) {
+            return true;
+        }
+
+        return (bool) preg_match(
+            '/\{\s*"name"\s*:\s*"[a-z_]+"/i',
+            $content,
+        );
     }
 }

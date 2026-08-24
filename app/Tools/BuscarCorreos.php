@@ -3,6 +3,7 @@
 namespace App\Tools;
 
 use App\Services\Gmail\GmailMessagesReader;
+use App\Services\Google\GoogleApiException;
 use App\Services\Google\GoogleTokenRefreshException;
 use App\Tools\Contracts\Tool;
 use InvalidArgumentException;
@@ -79,6 +80,8 @@ class BuscarCorreos implements Tool
             $messages = $this->reader->search($query, $maxResults);
         } catch (GoogleTokenRefreshException) {
             return ['error' => 'google_not_connected'];
+        } catch (GoogleApiException $e) {
+            return ['error' => 'google_api_error', 'detail' => mb_substr($e->getMessage(), 0, 300)];
         }
 
         return ['messages' => $messages];

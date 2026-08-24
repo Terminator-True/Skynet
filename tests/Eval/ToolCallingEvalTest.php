@@ -342,17 +342,25 @@ function eval_skip_if_embed_missing(): void
     $baseUrl = rtrim(config('ollama.base_url'), '/');
     $embedModel = config('ollama.embed_model');
 
+    // Ollama reports names as "<model>:<tag>" (e.g. "nomic-embed-text:latest");
+    // the configured name may omit the tag, so compare on the base model name.
+    $normalize = fn (string $name): string => strtolower(explode(':', $name, 2)[0]);
+
     $tags = Http::timeout(5)->get($baseUrl.'/api/tags');
     $embedModels = collect($tags->json('models', []))->filter(
-        fn (array $m): bool => ($m['name'] ?? '') === $embedModel,
+        fn (array $m): bool => $normalize((string) ($m['name'] ?? '')) === $normalize($embedModel),
     );
 
     if ($embedModels->isEmpty()) {
         test()->markTestSkipped("GATE STATUS: PENDING_EMBED_MODEL_PULL — [{$embedModel}] is not pulled. Run: ollama pull {$embedModel}");
     }
 
+    // Ollama's /api/tags reports the embed capability as "embedding" (singular).
     $capabilities = (array) ($embedModels->first()['capabilities'] ?? []);
-    if (! in_array('embeddings', $capabilities, true)) {
-        test()->markTestSkipped("GATE STATUS: NO_EMBED_CAPABILITY — [{$embedModel}] does not expose the 'embeddings' capability.");
+    $hasEmbed = in_array('embedding', $capabilities, true)
+        || in_array('embeddings', $capabilities, true);
+
+    if (! $hasEmbed) {
+        test()->markTestSkipped("GATE STATUS: NO_EMBED_CAPABILITY — [{$embedModel}] does not expose an 'embedding' capability.");
     }
 }
