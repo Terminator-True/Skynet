@@ -3,8 +3,11 @@
 use App\Services\ChatLoopExhaustedException;
 use App\Services\ChatOrchestrator;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+
+uses(RefreshDatabase::class);
 
 /**
  * Scripted Ollama /api/chat response helper.
