@@ -24,7 +24,7 @@ class LeerCorreo implements Tool
 
     public function description(): string
     {
-        return 'Reads the full decoded text body of one Gmail message by its id. Call buscar_correos first to obtain message ids.';
+        return 'Reads the decoded text body of ONE Gmail message by its id. Call buscar_correos first to obtain a message id, then read ONE message and summarize it. Do not read many emails in a row — read one, answer, and let the user ask for more.';
     }
 
     public function schema(): array
@@ -59,6 +59,13 @@ class LeerCorreo implements Tool
             return ['error' => 'google_api_error', 'detail' => mb_substr($e->getMessage(), 0, 300)];
         }
 
-        return ['body' => $message['body']];
+        $cap = (int) config('ollama.tool_result_char_cap', 6000);
+        $body = $message['body'];
+
+        if (mb_strlen($body) > $cap) {
+            $body = mb_substr($body, 0, $cap)."\n...\u{2026} [body truncated]";
+        }
+
+        return ['body' => $body];
     }
 }

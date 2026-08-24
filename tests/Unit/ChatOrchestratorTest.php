@@ -2,10 +2,12 @@
 
 use App\Services\ChatLoopExhaustedException;
 use App\Services\ChatOrchestrator;
+use App\Services\Gmail\GmailMessagesReader;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\FakeGmailMessagesReader;
 
 uses(RefreshDatabase::class);
 
@@ -192,4 +194,36 @@ it('does not retry a plain-text answer that merely mentions a tool name', functi
 
     expect($result->reply)->toBe('I can help with that.')
         ->and($result->toolCalls)->toBe([]);
+});
+
+it('truncates oversized tool results before feeding them back to the model', function () {
+    config(['ollama.base_url' => 'http://ollama.test']);
+    config(['ollama.tool_result_char_cap' => 200]);
+
+    // Bind a fake reader returning a body well over the 200-char cap.
+    $fake = new FakeGmailMessagesReader;
+    $fake->getHandler = fn (): array => ['body' => str_repeat('x', 5000)];
+    app()->instance(GmailMessagesReader::class, $fake);
+
+    scriptedOllama([
+        assistantToolCall('leer_correo', ['message_id' => 'abc123']),
+        assistantContent('Here is the email summary.'),
+    ]);
+
+    $result = app(ChatOrchestrator::class)->handle('what does the email say');
+
+    expect($result->reply)->toBe('Here is the email summary.')
+        ->and($result->toolCalls)->toHaveCount(1);
+
+    // The tool result message sent back to the model must be truncated.
+    Http::assertSent(function ($request): bool {
+        $body = json_decode($request->body(), true);
+        foreach ($body['messages'] as $message) {
+            if (($message['role'] ?? '') === 'tool' && str_contains($message['content'], 'truncated')) {
+                return true;
+            }
+        }
+
+        return false;
+    });
 });

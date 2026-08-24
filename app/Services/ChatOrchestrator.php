@@ -214,9 +214,24 @@ class ChatOrchestrator
      */
     private function toolMessage(string $name, array $payload): array
     {
+        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE);
+
+        // Guard the model context: a single tool result (e.g. a long email body
+        // from leer_correo) must never saturate num_ctx. Truncate and note the
+        // cut so the model knows there was more content it didn't see.
+        $cap = (int) config('ollama.tool_result_char_cap', 6000);
+
+        // json_encode fails only on non-UTF8/recursive payloads; degrade to a
+        // structured error rather than corrupting the model context.
+        $json = is_string($encoded)
+            ? (mb_strlen($encoded) > $cap
+                ? mb_substr($encoded, 0, $cap)."\n...\u{2026} [truncated: results exceed the context limit]"
+                : $encoded)
+            : '{"error":"serialization_failed"}';
+
         return [
             'role' => 'tool',
-            'content' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+            'content' => $json,
             'tool_name' => $name,
         ];
     }

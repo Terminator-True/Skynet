@@ -16,6 +16,11 @@ return [
     // extraction prompt so it always fits inside num_ctx.
     'extraction_char_cap' => (int) env('OLLAMA_EXTRACTION_CHAR_CAP', 6000),
 
+    // Tool results fed back into the model context are truncated to this many
+    // chars so a single large result (e.g. a long email body) can never
+    // saturate num_ctx and stall the loop.
+    'tool_result_char_cap' => (int) env('OLLAMA_TOOL_RESULT_CHAR_CAP', 6000),
+
     // Hard bound for the tool-calling loop; exhaustion returns a structured error.
     'max_tool_iterations' => (int) env('OLLAMA_MAX_TOOL_ITERATIONS', 4),
 
