@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Jobs\CheckForNotifications;
+use App\Jobs\IndexObsidianNotes;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
     // it the server won't boot, but offline tests (Event::fake) stay green.
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->job(new CheckForNotifications)
+            ->everyFifteenMinutes();
+
+        // Fase 5+ scheduled indexer: re-vectorize the local Obsidian vault on
+        // the same 15-min tick. Incremental (hash-cheap) so cost stays flat.
+        $schedule->job(new IndexObsidianNotes)
             ->everyFifteenMinutes();
     })
     ->withMiddleware(function (Middleware $middleware): void {

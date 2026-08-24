@@ -26,3 +26,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Local Obsidian vault (privacy: personal interview data must never be committed).
+/main_obsidian/
