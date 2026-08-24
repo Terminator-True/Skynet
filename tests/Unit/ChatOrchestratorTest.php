@@ -162,3 +162,34 @@ it('injects the current datetime and assistant timezone into the system prompt',
             && str_contains($system, "resolve relative dates like 'today'");
     });
 });
+
+it('retries once when the model leaks a tool call inline (_icall_) instead of structured tool_calls', function () {
+    config(['ollama.base_url' => 'http://ollama.test']);
+
+    // Rung 0: model writes the call as text. Rung 1 (after the corrective
+    // prompt): model emits the proper structured tool call.
+    scriptedOllama([
+        assistantContent('_icall_ {"name": "calculate_sum", "arguments": {"a": 2, "b": 3}}'),
+        assistantToolCall('calculate_sum', ['a' => 2, 'b' => 3]),
+        assistantContent('2 + 3 equals 5.'),
+    ]);
+
+    $result = app(ChatOrchestrator::class)->handle('What is 2 plus 3?');
+
+    expect($result->reply)->toBe('2 + 3 equals 5.')
+        ->and($result->toolCalls)->toHaveCount(1)
+        ->and($result->toolCalls[0]['name'])->toBe('calculate_sum')
+        ->and($result->toolCalls[0]['result']['sum'])->toBe(5.0);
+});
+
+it('does not retry a plain-text answer that merely mentions a tool name', function () {
+    config(['ollama.base_url' => 'http://ollama.test']);
+
+    // Content has no inline tool-call JSON, so the retry heuristic must not fire.
+    scriptedOllama([assistantContent('I can help with that.')]);
+
+    $result = app(ChatOrchestrator::class)->handle('hello');
+
+    expect($result->reply)->toBe('I can help with that.')
+        ->and($result->toolCalls)->toBe([]);
+});
