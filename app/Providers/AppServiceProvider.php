@@ -21,6 +21,7 @@ use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
 use App\Tools\ExtraerTrackingAmazon;
+use App\Tools\GuardarNota;
 use App\Tools\LeerCorreo;
 use App\Tools\ListarEventosCalendario;
 use App\Tools\RecordarPreferencia;
@@ -50,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register($this->app->make(BuscarWeb::class));
             $registry->register($this->app->make(RecordarPreferencia::class));
             $registry->register($this->app->make(BuscarNotas::class));
+            $registry->register($this->app->make(GuardarNota::class));
 
             return $registry;
         });
