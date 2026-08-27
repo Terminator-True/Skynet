@@ -2,6 +2,8 @@
 import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
+import AssistantVisualizer from '@/lib/assistant/AssistantVisualizer.vue';
+import { useAssistantState } from '@/lib/assistant/useAssistantState';
 
 interface ToolCallTrace {
     name: string;
@@ -19,6 +21,10 @@ const reply = ref<string | null>(null);
 const toolCalls = ref<ToolCallTrace[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+
+const { state: assistantState } = useAssistantState({
+    chatLoading: loading,
+});
 
 async function send(): Promise<void> {
     if (message.value.trim() === '' || loading.value) {
@@ -64,27 +70,35 @@ async function send(): Promise<void> {
     <Head title="Chat" />
     <NotificationToasts />
     <div
-        class="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]"
+        class="dark hud-frame relative min-h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
     >
-        <main class="flex w-full max-w-2xl flex-col gap-6 pt-10">
-            <div class="flex items-center justify-between">
+        <main class="flex w-full max-w-2xl flex-col items-center gap-6 pt-10">
+            <div class="flex w-full items-center justify-between">
                 <h1 class="text-2xl font-semibold">Skynet Assistant</h1>
-                <a href="/voice" class="text-sm text-[#706f6c] underline"
+                <a href="/voice" class="text-sm text-hud-text-dim underline"
                     >Voice</a
                 >
             </div>
 
-            <form class="flex gap-2" @submit.prevent="send">
+            <AssistantVisualizer :state="assistantState" />
+
+            <form
+                v-motion
+                :initial="{ opacity: 0, y: 8 }"
+                :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
+                class="flex w-full gap-2"
+                @submit.prevent="send"
+            >
                 <input
                     v-model="message"
                     type="text"
                     placeholder="Ask something..."
-                    class="flex-1 rounded-lg border border-[#e3e3e0] px-4 py-2 text-sm outline-none focus:border-[#1b1b18] dark:border-[#3E3E3A] dark:bg-[#161615]"
+                    class="flex-1 rounded-lg border border-hud-frame bg-hud-panel px-4 py-2 text-sm text-hud-text outline-none focus:border-hud-accent"
                     :disabled="loading"
                 />
                 <button
                     type="submit"
-                    class="rounded-lg bg-[#1b1b18] px-5 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-[#EDEDEC] dark:text-[#1b1b18]"
+                    class="rounded-lg bg-hud-accent px-5 py-2 text-sm font-medium text-hud-base disabled:opacity-50"
                     :disabled="loading || message.trim() === ''"
                 >
                     {{ loading ? 'Thinking...' : 'Send' }}
@@ -99,12 +113,18 @@ async function send(): Promise<void> {
                 {{ error }}
             </p>
 
-            <section v-if="reply !== null" class="flex flex-col gap-4">
+            <section
+                v-if="reply !== null"
+                v-motion
+                :initial="{ opacity: 0, y: 8 }"
+                :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
+                class="flex w-full flex-col gap-4"
+            >
                 <div
-                    class="rounded-lg border border-[#e3e3e0] p-4 text-sm dark:border-[#3E3E3A]"
+                    class="rounded-lg border border-hud-frame bg-hud-panel p-4 text-sm"
                 >
                     <h2
-                        class="mb-1 text-xs font-medium tracking-wide text-[#706f6c] uppercase"
+                        class="mb-1 text-xs font-medium tracking-wide text-hud-text-dim uppercase"
                     >
                         Reply
                     </h2>
@@ -113,10 +133,10 @@ async function send(): Promise<void> {
 
                 <div
                     v-if="toolCalls.length > 0"
-                    class="rounded-lg border border-dashed border-[#e3e3e0] p-4 text-xs dark:border-[#3E3E3A]"
+                    class="rounded-lg border border-dashed border-hud-frame bg-hud-panel p-4 text-xs"
                 >
                     <h2
-                        class="mb-2 font-medium tracking-wide text-[#706f6c] uppercase"
+                        class="mb-2 font-medium tracking-wide text-hud-text-dim uppercase"
                     >
                         Tool call trace
                     </h2>
@@ -125,9 +145,9 @@ async function send(): Promise<void> {
                             <span class="font-mono font-semibold">{{
                                 call.name
                             }}</span>
-                            <span class="mx-1 text-[#706f6c]">with</span>
+                            <span class="mx-1 text-hud-text-dim">with</span>
                             <code>{{ JSON.stringify(call.arguments) }}</code>
-                            <span class="mx-1 text-[#706f6c]">→</span>
+                            <span class="mx-1 text-hud-text-dim">→</span>
                             <code>{{ JSON.stringify(call.result) }}</code>
                         </li>
                     </ol>

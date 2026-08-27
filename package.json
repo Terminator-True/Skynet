@@ -11,6 +11,8 @@
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
         "postinstall": "patch-package",
+        "test": "vitest run",
+        "test:watch": "vitest",
         "types:check": "vue-tsc --noEmit"
     },
     "devDependencies": {
@@ -40,6 +42,7 @@
         "@tailwindcss/vite": "^4.1.11",
         "@timur00kh/whisper.wasm": "^0.1.1",
         "@vitejs/plugin-vue": "^6.0.0",
+        "@vueuse/motion": "^3.0.3",
         "clsx": "^2.1.1",
         "concurrently": "^10.0.3",
         "dompurify": "^3.4.14",
