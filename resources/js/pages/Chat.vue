@@ -27,6 +27,10 @@ interface ChatResponse {
 const SESSION_KEY = 'skynet.chat.session_id';
 
 function loadSessionId(): string {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return '';
+    }
+
     let id = localStorage.getItem(SESSION_KEY);
 
     if (!id) {
