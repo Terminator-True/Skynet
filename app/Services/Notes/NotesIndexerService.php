@@ -87,6 +87,65 @@ class NotesIndexerService
     }
 
     /**
+     * Index a single note file, replacing any prior rows for that path.
+     *
+     * Deletes the existing chunks for the note and re-embeds its current
+     * content via the same chunk/hash/embed pipeline as index(). Used to
+     * refresh the index immediately after guardar_nota saves a note (D6) so it
+     * is recallable without waiting for the 15-minute job. Returns chunks
+     * embedded; no-ops when the file is absent, outside the vault, or there is
+     * no user.
+     */
+    public function indexFile(string $absolute, ?User $user = null): int
+    {
+        $vault = config('notes.vault_path');
+
+        if (! is_string($vault) || ! File::isFile($absolute)) {
+            return 0;
+        }
+
+        $root = realpath($vault);
+
+        if ($root === false || ! $this->isWithin($root, $absolute)) {
+            return 0;
+        }
+
+        $user ??= User::query()->first();
+
+        if ($user === null) {
+            return 0;
+        }
+
+        $relative = $this->relativePath($root, $absolute);
+        $content = File::get($absolute);
+        $hash = self::contentHash($content);
+
+        $this->noteIndex->newQuery()
+            ->where('user_id', $user->id)
+            ->where('path', $relative)
+            ->delete();
+
+        $embedded = 0;
+
+        foreach (self::chunk($content, config('notes.chunk_chars')) as $index => $chunkContent) {
+            $this->noteIndex->create([
+                'user_id' => $user->id,
+                'path' => $relative,
+                'relative_path' => $relative,
+                'chunk_index' => $index,
+                'content' => $chunkContent,
+                'embedding' => $this->embeddingProvider->embed($chunkContent),
+                'content_hash' => $hash,
+                'updated_at' => now(),
+            ]);
+
+            $embedded++;
+        }
+
+        return $embedded;
+    }
+
+    /**
      * Split a note on `## ` headers (folding any H1 preamble into the first
      * section), falling back to char-bounded slices for headerless or oversized
      * content. One embedding per chunk.
@@ -181,6 +240,14 @@ class NotesIndexerService
     private function relativePath(string $vault, string $absolute): string
     {
         return ltrim(str_replace($vault, '', $absolute), '/\\');
+    }
+
+    /** True when $absolute is inside (or equal to) the vault $root. */
+    private function isWithin(string $root, string $absolute): bool
+    {
+        $root = rtrim($root, '/\\');
+
+        return $absolute === $root || str_starts_with($absolute, $root.'/');
     }
 
     /** @return list<string> */
