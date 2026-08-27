@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use App\Services\ChatLoopExhaustedException;
 use App\Services\Ollama\OllamaConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -10,6 +11,8 @@ function fakeChatEndpoint(array $sequence): void
 }
 
 it('answers a plain question with a reply and empty tool_calls', function () {
+    User::create(['name' => 'Tester', 'email' => 'tester@example.com']);
+
     fakeChatEndpoint([
         ['message' => ['role' => 'assistant', 'content' => 'Hello! How can I help?']],
     ]);
@@ -17,10 +20,27 @@ it('answers a plain question with a reply and empty tool_calls', function () {
     $response = $this->postJson('/chat', ['message' => 'Say hello']);
 
     $response->assertOk()
-        ->assertExactJson([
+        ->assertJson([
             'reply' => 'Hello! How can I help?',
             'tool_calls' => [],
         ]);
+});
+
+it('echoes the session id and returns the persisted history for that session', function () {
+    User::create(['name' => 'Tester', 'email' => 'tester@example.com']);
+
+    fakeChatEndpoint([
+        ['message' => ['role' => 'assistant', 'content' => 'Entendido.']],
+    ]);
+
+    $response = $this->postJson('/chat', ['message' => 'Hola', 'session_id' => 'ses-abc']);
+
+    $response->assertOk()
+        ->assertJsonPath('session_id', 'ses-abc')
+        ->assertJsonCount(2, 'history')
+        ->assertJsonPath('history.0.content', 'Hola')
+        ->assertJsonPath('history.0.role', 'user')
+        ->assertJsonPath('history.1.role', 'assistant');
 });
 
 it('returns the full contract shape for tool-mediated answers', function () {

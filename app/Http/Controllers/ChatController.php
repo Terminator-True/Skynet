@@ -11,17 +11,20 @@ use Illuminate\Http\Request;
 class ChatController extends Controller
 {
     /**
-     * Stateless sync JSON endpoint. Zero DB access by design; swappable to
-     * SSE later without touching the orchestrator core.
+     * Sync JSON endpoint with optional session continuity (D2/D3). Stateful via
+     * the orchestrator: an omitted session_id falls back to the default session
+     * so single-turn behaviour is unchanged. Swappable to SSE later without
+     * touching the orchestrator core.
      */
     public function store(Request $request, ChatOrchestrator $orchestrator): JsonResponse
     {
         $validated = $request->validate([
             'message' => ['required', 'string', 'min:1'],
+            'session_id' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
         try {
-            $result = $orchestrator->handle($validated['message']);
+            $result = $orchestrator->handle($validated['message'], $validated['session_id'] ?? null);
         } catch (OllamaConnectionException $e) {
             return response()->json([
                 'error' => 'ollama_unreachable',
