@@ -31,10 +31,34 @@ export const defaultMic: MicOps = {
 
         return audioData;
     },
-    // Streaming chunk capture for wake-word detection. The real 16kHz
-    // AudioWorklet/script-processor implementation ships with Slice B; this
-    // placeholder keeps the MicOps contract satisfied until then.
-    startCapture() {
-        return () => {};
+    // Streaming chunk capture for wake-word detection. Uses a 16kHz AudioContext
+    // so the raw Float32Array chunks are already whisper-ready. A zero-gain sink
+    // keeps the mic feed silent (never audible while always-listening). Returns
+    // a cleanup that stops the processor and closes the context.
+    startCapture(stream, onChunk) {
+        const context = new AudioContext({ sampleRate: TARGET_SAMPLE_RATE });
+        const source = context.createMediaStreamSource(stream);
+        const processor = context.createScriptProcessor(4096, 1, 1);
+        const sink = context.createGain();
+
+        sink.gain.value = 0;
+
+        processor.onaudioprocess = (event) => {
+            const channel = event.inputBuffer.getChannelData(0);
+            // Copy so the consumer owns the buffer (the processor reuses it).
+            onChunk(new Float32Array(channel));
+        };
+
+        source.connect(processor);
+        processor.connect(sink);
+        sink.connect(context.destination);
+        void context.resume();
+
+        return () => {
+            processor.disconnect();
+            source.disconnect();
+            sink.disconnect();
+            void context.close();
+        };
     },
 };
