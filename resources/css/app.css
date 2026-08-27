@@ -3,11 +3,30 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
     --font-sans:
         Instrument Sans, ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+    --font-mono:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --color-hud-base: #05070a;
+    --color-hud-panel: #0b1220;
+    --color-hud-accent: #22d3ee;
+    --color-hud-accent-soft: #38bdf8;
+    --color-hud-frame: rgba(125, 211, 252, 0.35);
+    --color-hud-text: #dbeafe;
+    --color-hud-text-dim: #64748b;
+}
+
+@layer components {
+    /* Thin HUD frame/indicator border for assistant pages. */
+    .hud-frame {
+        border: 1px solid var(--color-hud-frame);
+    }
 }
 
 /* Markdown reply rendering (shared by Chat and VoiceChat). */
