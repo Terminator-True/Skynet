@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 
 interface ToolCallTrace {
     name: string;
@@ -107,7 +108,7 @@ async function send(): Promise<void> {
                     >
                         Reply
                     </h2>
-                    <p>{{ reply }}</p>
+                    <MarkdownRenderer :content="reply" />
                 </div>
 
                 <div

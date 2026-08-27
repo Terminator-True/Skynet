@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 import { GREETING_CHIPS } from '@/lib/voice/greetings';
 import { defaultMic } from '@/lib/voice/mic';
 import { createPiperEngine } from '@/lib/voice/piperAdapter';
@@ -299,7 +300,7 @@ onMounted(async () => {
                     >
                         Reply
                     </h2>
-                    <p>{{ reply }}</p>
+                    <MarkdownRenderer :content="reply" />
                 </div>
             </section>
         </main>
