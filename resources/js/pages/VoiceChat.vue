@@ -2,6 +2,8 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, onMounted, ref, watch } from 'vue';
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
+import AssistantVisualizer from '@/lib/assistant/AssistantVisualizer.vue';
+import { useAssistantState } from '@/lib/assistant/useAssistantState';
 import { GREETING_CHIPS } from '@/lib/voice/greetings';
 import { defaultMic } from '@/lib/voice/mic';
 import { createPiperEngine } from '@/lib/voice/piperAdapter';
@@ -74,6 +76,17 @@ const {
     undefined,
     () => wakeDetector.value,
 );
+
+// Voice signals for the shared assistant visual state (calling→processing,
+// listening→listening, playing→speaking).
+const calling = computed(() => state.value === 'calling');
+const listening = computed(() => state.value === 'listening');
+const playing = computed(() => state.value === 'playing');
+
+const { state: assistantState } = useAssistantState({
+    chatLoading: ref(false),
+    voice: { calling, listening, playing },
+});
 
 const isBusy = computed(
     () =>
@@ -172,7 +185,7 @@ onMounted(async () => {
     <Head title="Voice Chat" />
     <NotificationToasts />
     <div
-        class="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]"
+        class="dark flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]"
     >
         <main class="flex w-full max-w-2xl flex-col gap-6 pt-10">
             <div class="flex items-center justify-between">
@@ -180,6 +193,10 @@ onMounted(async () => {
                 <a href="/chat" class="text-sm text-[#706f6c] underline"
                     >Back to chat</a
                 >
+            </div>
+
+            <div class="flex justify-center">
+                <AssistantVisualizer :state="assistantState" />
             </div>
 
             <div class="flex flex-col gap-2">

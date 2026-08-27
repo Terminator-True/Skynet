@@ -23,7 +23,7 @@ describe('useAssistantState', () => {
         expect(isBusy.value).toBe(false);
     });
 
-    it('exposes all four states and isBusy', () => {
+    it('maps voice calling to processing', () => {
         const chatLoading = ref(false);
         const voice = {
             calling: ref(false),
@@ -32,17 +32,40 @@ describe('useAssistantState', () => {
         };
         const { state, isBusy } = useAssistantState({ chatLoading, voice });
 
+        expect(state.value).toBe('idle');
+
         voice.calling.value = true;
+
         expect(state.value).toBe('processing');
         expect(isBusy.value).toBe(true);
+    });
 
-        voice.calling.value = false;
+    it('maps voice listening to listening', () => {
+        const chatLoading = ref(false);
+        const voice = {
+            calling: ref(false),
+            listening: ref(false),
+            playing: ref(false),
+        };
+        const { state, isBusy } = useAssistantState({ chatLoading, voice });
+
         voice.listening.value = true;
+
         expect(state.value).toBe('listening');
         expect(isBusy.value).toBe(false);
+    });
 
-        voice.listening.value = false;
+    it('maps voice playing to speaking', () => {
+        const chatLoading = ref(false);
+        const voice = {
+            calling: ref(false),
+            listening: ref(false),
+            playing: ref(false),
+        };
+        const { state } = useAssistantState({ chatLoading, voice });
+
         voice.playing.value = true;
+
         expect(state.value).toBe('speaking');
     });
 
