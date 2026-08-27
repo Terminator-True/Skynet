@@ -11,13 +11,35 @@ interface ToolCallTrace {
     result: Record<string, unknown>;
 }
 
+interface HistoryMessage {
+    role: string;
+    content: string;
+    tool_trace?: unknown[] | null;
+}
+
 interface ChatResponse {
     reply: string;
     tool_calls: ToolCallTrace[];
+    session_id?: string | null;
+    history?: HistoryMessage[];
+}
+
+const SESSION_KEY = 'skynet.chat.session_id';
+
+function loadSessionId(): string {
+    let id = localStorage.getItem(SESSION_KEY);
+
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem(SESSION_KEY, id);
+    }
+
+    return id;
 }
 
 const message = ref('');
-const reply = ref<string | null>(null);
+const sessionId = ref(loadSessionId());
+const history = ref<HistoryMessage[]>([]);
 const toolCalls = ref<ToolCallTrace[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -33,7 +55,6 @@ async function send(): Promise<void> {
 
     loading.value = true;
     error.value = null;
-    reply.value = null;
     toolCalls.value = [];
 
     try {
@@ -43,7 +64,10 @@ async function send(): Promise<void> {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
             },
-            body: JSON.stringify({ message: message.value }),
+            body: JSON.stringify({
+                message: message.value,
+                session_id: sessionId.value,
+            }),
         });
 
         const payload = await response.json();
@@ -56,7 +80,13 @@ async function send(): Promise<void> {
         }
 
         const data = payload as ChatResponse;
-        reply.value = data.reply;
+
+        if (data.session_id) {
+            sessionId.value = data.session_id;
+            localStorage.setItem(SESSION_KEY, data.session_id);
+        }
+
+        history.value = data.history ?? [];
         toolCalls.value = data.tool_calls ?? [];
     } catch {
         error.value = 'Could not reach the server.';
@@ -114,21 +144,32 @@ async function send(): Promise<void> {
             </p>
 
             <section
-                v-if="reply !== null"
+                v-if="history.length > 0"
                 v-motion
                 :initial="{ opacity: 0, y: 8 }"
                 :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
                 class="flex w-full flex-col gap-4"
             >
                 <div
-                    class="rounded-lg border border-hud-frame bg-hud-panel p-4 text-sm"
+                    v-for="(turn, index) in history"
+                    :key="index"
+                    class="rounded-lg border border-hud-frame p-4 text-sm"
+                    :class="
+                        turn.role === 'user'
+                            ? 'bg-[#f3f3f0] dark:bg-[#161615]'
+                            : 'bg-hud-panel'
+                    "
                 >
                     <h2
                         class="mb-1 text-xs font-medium tracking-wide text-hud-text-dim uppercase"
                     >
-                        Reply
+                        {{ turn.role === 'user' ? 'You' : 'Assistant' }}
                     </h2>
-                    <MarkdownRenderer :content="reply" />
+                    <MarkdownRenderer
+                        v-if="turn.role !== 'user'"
+                        :content="turn.content"
+                    />
+                    <p v-else class="whitespace-pre-wrap">{{ turn.content }}</p>
                 </div>
 
                 <div
