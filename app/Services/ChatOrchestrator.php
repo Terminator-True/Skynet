@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Services\Ollama\OllamaClient;
 use App\Tools\ToolRegistry;
 
@@ -32,19 +33,45 @@ class ChatOrchestrator
         private readonly OllamaClient $client,
         private readonly ToolRegistry $registry,
         private readonly MemoryService $memory,
+        private readonly ConversationService $conversations,
     ) {}
 
     /**
+     * Run one turn against a (possibly pre-existing) session thread.
+     *
+     * Reads the persisted thread for the session (ORDER BY created_at,id),
+     * prepends it as context, appends the new user message, runs the Ollama
+     * tool loop, then persists the assistant reply (with its tool trace) so the
+     * follow-up flow survives across HTTP requests. buildSystemPrompt stays
+     * per-request (D3); omitting $sessionId resolves the fixed 'default'
+     * session, keeping single-turn behaviour backward compatible (D2).
+     *
      * @throws ChatLoopExhaustedException when the iteration cap is reached
      */
-    public function handle(string $userMessage): ChatTurnResult
+    public function handle(string $userMessage, ?string $sessionId = null): ChatTurnResult
     {
         $maxIterations = (int) config('ollama.max_tool_iterations', 4);
 
+        $user = User::query()->first();
+        $conversation = $user !== null
+            ? $this->conversations->resolve($sessionId, $user->id)
+            : null;
+
         $messages = [
             ['role' => 'system', 'content' => $this->buildSystemPrompt($userMessage)],
-            ['role' => 'user', 'content' => $userMessage],
         ];
+
+        if ($conversation !== null) {
+            foreach ($this->conversations->history($conversation) as $message) {
+                $messages[] = ['role' => $message['role'], 'content' => $message['content']];
+            }
+        }
+
+        $messages[] = ['role' => 'user', 'content' => $userMessage];
+
+        if ($conversation !== null) {
+            $this->conversations->append($conversation, 'user', $userMessage);
+        }
 
         /** @var list<array{name: string, arguments: array<string, mixed>, result: array<string, mixed>}> $trace */
         $trace = [];
@@ -70,9 +97,17 @@ class ChatOrchestrator
                     continue;
                 }
 
+                $reply = $this->finalReply($response['content']);
+
+                if ($conversation !== null) {
+                    $this->conversations->append($conversation, 'assistant', $reply, $trace ?: null);
+                }
+
                 return new ChatTurnResult(
-                    reply: $this->finalReply($response['content']),
+                    reply: $reply,
                     toolCalls: $trace,
+                    history: $conversation !== null ? $this->conversations->history($conversation) : [],
+                    sessionId: $conversation?->session_id,
                 );
             }
 
