@@ -24,7 +24,24 @@ class ChatOrchestrator
     private const SYSTEM_PROMPT_BASE = 'You are a helpful personal assistant. '
         .'Use the provided tools whenever they can answer the user request. '
         .'When you call tools, wait for their results before answering. '
-        .'If no tool is needed, answer directly in natural language.';
+        .'If no tool is needed, answer directly in natural language.'
+        ."\n\nFollow-up flow: after you answer a search or investigation request, "
+        .'ask the user "¿Quieres saber algo más?". If the user answers negatively, '
+        .'ask "¿Quieres que apunte en Obsidian lo que has aprendido?". '
+        .'If the user answers positively, call guardar_nota to save a Markdown note '
+        .'summarising what was learned. Only call guardar_nota after the user has '
+        .'explicitly agreed to the save question — never on ordinary chat.';
+
+    /**
+     * Note-generation guidance so guardar_nota writes a well-formed note: the
+     * filename derives from the title via Str::slug, the body carries YAML
+     * frontmatter, and the content follows a concise, structured format.
+     */
+    private const NOTE_GEN_GUIDANCE = "\n\nNote format for guardar_nota: "
+        .'derive the filename from the title with Str::slug (lowercase, hyphen-separated) plus ".md"; '
+        .'write YAML frontmatter with title, date, and tags keys; '
+        .'then a concise structured body (an intro line, then headings and bullet points) '
+        .'summarising the learning.';
 
     /** Emitted when the model leaks a tool call into the reply text. */
     private const TOOL_RETRY_SUFFIX = "\n\nIMPORTANT: emit the tool call as a STRUCTURED tool_calls field with its real arguments — never write a tool invocation inside your reply text. If you intended to call a tool, do so now properly.";
@@ -148,7 +165,9 @@ class ChatOrchestrator
     {
         $now = now(config('app.assistant_timezone'));
 
-        $prompt = self::SYSTEM_PROMPT_BASE.' Current date/time: '
+        $prompt = self::SYSTEM_PROMPT_BASE
+            .self::NOTE_GEN_GUIDANCE
+            .' Current date/time: '
             .$now->format('l, Y-m-d H:i').' ('.$now->getTimezone()->getName().'). '
             ."Use this to resolve relative dates like 'today'.";
 

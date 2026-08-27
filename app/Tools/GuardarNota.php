@@ -35,7 +35,9 @@ class GuardarNota implements Tool
     public function description(): string
     {
         return 'Creates a new Markdown note in the user\'s local Obsidian vault. '
-            .'Use when the user asks to save, note down, or remember a learning in their notes. '
+            .'Call ONLY after the user has explicitly agreed to save the note (for example, '
+            .'they said yes to "¿Quieres que apunte en Obsidian lo que has aprendido?"). '
+            .'Never call it on ordinary chat, questions, or without explicit consent. '
             .'Provide a short {title} and the Markdown {body}; use {folder} only for a relative '
             .'sub-folder (e.g. "projects/php"), never an absolute path.';
     }
