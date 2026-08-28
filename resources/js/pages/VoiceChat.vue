@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 import AssistantVisualizer from '@/lib/assistant/AssistantVisualizer.vue';
 import { useAssistantState } from '@/lib/assistant/useAssistantState';
@@ -59,6 +59,46 @@ const showFallback = ref(false);
 const wakeDetector = ref<WakeWordDetector | null>(null);
 const sessionId = ref(loadSessionId());
 const history = ref<HistoryMessage[]>([]);
+const threadEl = ref<HTMLElement | null>(null);
+
+// Guard flag: once a POST response has set history, the onMounted GET preload
+// must not overwrite it (the POST is authoritative when the two race).
+let historyHydrated = false;
+
+async function scrollToBottom(): Promise<void> {
+    await nextTick();
+
+    if (threadEl.value) {
+        threadEl.value.scrollTop = threadEl.value.scrollHeight;
+    }
+}
+
+async function preloadHistory(): Promise<void> {
+    try {
+        const response = await fetch(
+            `/chat/history?session_id=${encodeURIComponent(sessionId.value)}`,
+            { method: 'GET', headers: { Accept: 'application/json' } },
+        );
+
+        if (!response.ok) {
+            return;
+        }
+
+        const payload = (await response.json()) as {
+            session_id?: string | null;
+            history?: HistoryMessage[];
+        };
+
+        if (historyHydrated) {
+            return;
+        }
+
+        history.value = payload.history ?? [];
+        await scrollToBottom();
+    } catch {
+        // Preload is best-effort; a failed GET should not break the page.
+    }
+}
 
 const chatPost = async (message: string): Promise<string> => {
     const response = await fetch('/chat', {
@@ -89,6 +129,8 @@ const chatPost = async (message: string): Promise<string> => {
     }
 
     history.value = data.history ?? [];
+    historyHydrated = true;
+    await scrollToBottom();
 
     return data.reply;
 };
@@ -171,6 +213,10 @@ function sendFallback(): void {
     void sendText(message);
 }
 
+onMounted(() => {
+    void preloadHistory();
+});
+
 onMounted(async () => {
     try {
         // Real engine wiring: whisper for STT, piper for TTS, exposed through
@@ -220,7 +266,7 @@ onMounted(async () => {
     <Head title="Voice Chat" />
     <NotificationToasts />
     <div
-        class="dark hud-frame relative min-h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
+        class="dark hud-frame relative h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
     >
         <main class="flex w-full max-w-2xl flex-col gap-6 pt-10">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -359,7 +405,11 @@ onMounted(async () => {
                 </div>
             </section>
 
-            <section v-if="history.length > 0" class="flex flex-col gap-4">
+            <section
+                v-if="history.length > 0"
+                ref="threadEl"
+                class="max-h flex h-[60vh] min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto"
+            >
                 <div
                     v-for="(turn, index) in history"
                     :key="index"
