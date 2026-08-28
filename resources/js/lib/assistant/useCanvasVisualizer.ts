@@ -28,6 +28,17 @@ export function useCanvasVisualizer(
     canvasRef: Ref<HTMLCanvasElement | null>,
     params: Ref<AnimationParams>,
 ): CanvasVisualizer {
+    // SSR guard: `window`/`document` do not exist during server render. The
+    // orb is decorative, so return a no-op adapter; the client hydrates and
+    // runs the real loop.
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return {
+            start() {},
+            stop() {},
+            drawFrame() {},
+        };
+    }
+
     let rafId: number | null = null;
     let running = false;
     let observer: ResizeObserver | null = null;
