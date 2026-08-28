@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 import AssistantVisualizer from '@/lib/assistant/AssistantVisualizer.vue';
 import type { AssistantVisualState } from '@/lib/assistant/types';
@@ -55,6 +55,50 @@ const history = ref<HistoryMessage[]>([]);
 const toolCalls = ref<ToolCallTrace[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const threadEl = ref<HTMLElement | null>(null);
+
+// Guard flag: once a POST response has set history, the onMounted GET preload
+// must not overwrite it (the POST is authoritative when the two race).
+let historyHydrated = false;
+
+async function scrollToBottom(): Promise<void> {
+    await nextTick();
+
+    if (threadEl.value) {
+        threadEl.value.scrollTop = threadEl.value.scrollHeight;
+    }
+}
+
+async function preloadHistory(): Promise<void> {
+    try {
+        const response = await fetch(
+            `/chat/history?session_id=${encodeURIComponent(sessionId.value)}`,
+            { method: 'GET', headers: { Accept: 'application/json' } },
+        );
+
+        if (!response.ok) {
+            return;
+        }
+
+        const payload = (await response.json()) as {
+            session_id?: string | null;
+            history?: HistoryMessage[];
+        };
+
+        if (historyHydrated) {
+            return;
+        }
+
+        history.value = payload.history ?? [];
+        await scrollToBottom();
+    } catch {
+        // Preload is best-effort; a failed GET should not break the page.
+    }
+}
+
+onMounted(() => {
+    void preloadHistory();
+});
 
 const { state: assistantState } = useAssistantState({
     chatLoading: loading,
@@ -101,7 +145,9 @@ async function send(): Promise<void> {
         }
 
         history.value = data.history ?? [];
+        historyHydrated = true;
         toolCalls.value = data.tool_calls ?? [];
+        await scrollToBottom();
     } catch {
         error.value = 'Could not reach the server.';
     } finally {
@@ -114,7 +160,7 @@ async function send(): Promise<void> {
     <Head title="Chat" />
     <NotificationToasts />
     <div
-        class="dark hud-frame relative min-h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
+        class="dark hud-frame relative h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
     >
         <main class="flex w-full max-w-2xl flex-col items-center gap-6 pt-10">
             <!-- Top bar: brand + subtitle + readouts -->
@@ -194,7 +240,8 @@ async function send(): Promise<void> {
                 v-motion
                 :initial="{ opacity: 0, y: 8 }"
                 :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
-                class="flex w-full flex-col gap-4"
+                ref="threadEl"
+                class="max-h flex h-[60vh] min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto"
             >
                 <div
                     v-for="(turn, index) in history"

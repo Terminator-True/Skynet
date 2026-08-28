@@ -34,6 +34,43 @@ function flushPromises(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+interface HistoryMessage {
+    role: string;
+    content: string;
+    tool_trace?: unknown[] | null;
+}
+
+function createChatFetchMock(
+    overrides: { getHistory?: HistoryMessage[] } = {},
+): ReturnType<typeof vi.fn> {
+    return vi.fn((input: string | Request | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = (init?.method ?? 'GET').toUpperCase();
+
+        if (method === 'GET' && url.startsWith('/chat/history')) {
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    session_id: 'test-session-123',
+                    history: overrides.getHistory ?? [],
+                }),
+            });
+        }
+
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                reply: '**Listo**, guardado en tu nota.',
+                tool_calls: [],
+                session_id: 'test-session-123',
+                history: THREAD,
+            }),
+        });
+    });
+}
+
 async function mountChatWithThread(): Promise<
     ReturnType<typeof mount<typeof Chat>>
 > {
@@ -61,16 +98,7 @@ describe('Chat.vue state buttons', () => {
         vi.stubGlobal('localStorage', createStorage());
         localStorage.setItem(SESSION_KEY, 'test-session-123');
 
-        fetchMock = vi.fn().mockResolvedValue({
-            ok: true,
-            status: 200,
-            json: async () => ({
-                reply: '**Listo**, guardado en tu nota.',
-                tool_calls: [],
-                session_id: 'test-session-123',
-                history: THREAD,
-            }),
-        });
+        fetchMock = createChatFetchMock();
         vi.stubGlobal('fetch', fetchMock);
     });
 
@@ -115,16 +143,7 @@ describe('Chat.vue bubble alignment', () => {
         vi.stubGlobal('localStorage', createStorage());
         localStorage.setItem(SESSION_KEY, 'test-session-123');
 
-        fetchMock = vi.fn().mockResolvedValue({
-            ok: true,
-            status: 200,
-            json: async () => ({
-                reply: '**Listo**, guardado en tu nota.',
-                tool_calls: [],
-                session_id: 'test-session-123',
-                history: THREAD,
-            }),
-        });
+        fetchMock = createChatFetchMock();
         vi.stubGlobal('fetch', fetchMock);
     });
 
@@ -150,5 +169,60 @@ describe('Chat.vue bubble alignment', () => {
             expect(bubble.classes()).toContain('mr-auto');
             expect(bubble.classes()).toContain('w-[78%]');
         }
+    });
+});
+
+describe('Chat.vue bounded scroll + centered layout', () => {
+    beforeEach(() => {
+        vi.stubGlobal('localStorage', createStorage());
+        localStorage.setItem(SESSION_KEY, 'test-session-123');
+
+        vi.stubGlobal('fetch', createChatFetchMock({ getHistory: THREAD }));
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('wraps the thread in a bounded scroll container', async () => {
+        const wrapper = mount(Chat, {
+            global: {
+                stubs: {
+                    Head: true,
+                    NotificationToasts: true,
+                },
+            },
+        });
+
+        await flushPromises();
+        await wrapper.vm.$nextTick();
+
+        const thread = wrapper.find('section.overflow-y-auto');
+
+        expect(thread.exists()).toBe(true);
+        expect(thread.classes()).toContain('h-[60vh]');
+        expect(thread.classes()).toContain('max-h');
+        expect(thread.classes()).toContain('min-h-0');
+        expect(thread.classes()).toContain('flex-1');
+    });
+
+    it('centers the bounded box in a viewport-height flex column', async () => {
+        const wrapper = mount(Chat, {
+            global: {
+                stubs: {
+                    Head: true,
+                    NotificationToasts: true,
+                },
+            },
+        });
+
+        await flushPromises();
+
+        const root = wrapper.find('div.hud-frame');
+
+        expect(root.exists()).toBe(true);
+        expect(root.classes()).toContain('h-screen');
+        expect(root.classes()).toContain('flex-col');
+        expect(root.classes()).toContain('items-center');
     });
 });
