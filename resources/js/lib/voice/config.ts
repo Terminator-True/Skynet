@@ -1,6 +1,9 @@
 /** Whisper STT model served locally from public/models (gitignored). Never remote. */
 export const WHISPER_MODEL = 'tiny';
-export const WHISPER_MODEL_FILE = '/models/ggml-tiny.bin';
+// The ?v=2 query busts the ModelManager IndexedDB cache: a partial/corrupt copy
+// from before the models were provisioned made whisper_full() abort. A new cache
+// key forces a fresh download of the now-provisioned model.
+export const WHISPER_MODEL_FILE = '/models/ggml-tiny.bin?v=2';
 export const VOICE_LANGUAGE = 'es';
 export const TARGET_SAMPLE_RATE = 16000;
 
