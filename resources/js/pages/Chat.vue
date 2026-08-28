@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 import AssistantVisualizer from '@/lib/assistant/AssistantVisualizer.vue';
+import type { AssistantVisualState } from '@/lib/assistant/types';
 import { useAssistantState } from '@/lib/assistant/useAssistantState';
 
 interface ToolCallTrace {
@@ -25,6 +26,13 @@ interface ChatResponse {
 }
 
 const SESSION_KEY = 'skynet.chat.session_id';
+
+const STATES: readonly AssistantVisualState[] = [
+    'idle',
+    'processing',
+    'listening',
+    'speaking',
+];
 
 function loadSessionId(): string {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
@@ -51,6 +59,8 @@ const error = ref<string | null>(null);
 const { state: assistantState } = useAssistantState({
     chatLoading: loading,
 });
+
+const stateLabel = computed(() => assistantState.value);
 
 async function send(): Promise<void> {
     if (message.value.trim() === '' || loading.value) {
@@ -107,46 +117,78 @@ async function send(): Promise<void> {
         class="dark hud-frame relative min-h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
     >
         <main class="flex w-full max-w-2xl flex-col items-center gap-6 pt-10">
-            <div class="flex w-full items-center justify-between">
-                <h1 class="text-2xl font-semibold">Skynet Assistant</h1>
-                <a href="/voice" class="text-sm text-hud-text-dim underline"
-                    >Voice</a
+            <!-- Top bar: brand + subtitle + readouts -->
+            <header class="flex w-full flex-col gap-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-col">
+                        <h1
+                            class="font-display text-2xl font-semibold tracking-wide text-hud-text"
+                        >
+                            Skynet Assistant
+                        </h1>
+                        <p class="text-sm text-hud-text-dim">
+                            AEGIS HUD console
+                        </p>
+                    </div>
+                    <a href="/voice" class="text-sm text-hud-text-dim underline"
+                        >Voice</a
+                    >
+                </div>
+                <div
+                    class="flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs text-hud-text-dim"
                 >
-            </div>
+                    <span class="flex gap-2">
+                        <span class="text-hud-accent">MODELO</span>
+                        skynet-aegis-v2
+                    </span>
+                    <span class="flex gap-2">
+                        <span class="text-hud-accent">LATENCIA</span>
+                        42ms
+                    </span>
+                    <span class="flex gap-2">
+                        <span class="text-hud-accent">ESTADO</span>
+                        {{ stateLabel }}
+                    </span>
+                </div>
+            </header>
 
-            <AssistantVisualizer :state="assistantState" />
-
-            <form
-                v-motion
-                :initial="{ opacity: 0, y: 8 }"
-                :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
-                class="flex w-full gap-2"
-                @submit.prevent="send"
+            <!-- Orb stage with HUD chrome + passive state buttons -->
+            <section
+                class="hud-corner hud-scanline hud-radial-bg relative w-full"
             >
-                <input
-                    v-model="message"
-                    type="text"
-                    placeholder="Ask something..."
-                    class="flex-1 rounded-lg border border-hud-frame bg-hud-panel px-4 py-2 text-sm text-hud-text outline-none focus:border-hud-accent"
-                    :disabled="loading"
-                />
-                <button
-                    type="submit"
-                    class="rounded-lg bg-hud-accent px-5 py-2 text-sm font-medium text-hud-base disabled:opacity-50"
-                    :disabled="loading || message.trim() === ''"
-                >
-                    {{ loading ? 'Thinking...' : 'Send' }}
-                </button>
-            </form>
+                <span></span>
+                <span></span>
+                <div class="flex flex-col items-center gap-4 py-8">
+                    <p
+                        class="font-mono text-xs tracking-[0.3em] text-hud-text-dim uppercase"
+                    >
+                        System state
+                    </p>
 
-            <p
-                v-if="error"
-                role="alert"
-                class="rounded-lg bg-red-100 p-3 text-sm text-red-700"
-            >
-                {{ error }}
-            </p>
+                    <AssistantVisualizer :state="assistantState" />
 
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button
+                            v-for="s in STATES"
+                            :key="s"
+                            type="button"
+                            disabled
+                            aria-disabled="true"
+                            :data-state="s"
+                            class="rounded border px-3 py-1 font-mono text-xs tracking-wider uppercase transition-colors"
+                            :class="
+                                s === assistantState
+                                    ? 'border-hud-accent bg-hud-accent text-hud-base'
+                                    : 'border-hud-frame text-hud-text-dim'
+                            "
+                        >
+                            {{ s }}
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat bubbles: 78% width, user right / assistant left -->
             <section
                 v-if="history.length > 0"
                 v-motion
@@ -157,23 +199,26 @@ async function send(): Promise<void> {
                 <div
                     v-for="(turn, index) in history"
                     :key="index"
-                    class="rounded-lg border border-hud-frame p-4 text-sm"
-                    :class="
-                        turn.role === 'user'
-                            ? 'bg-[#f3f3f0] dark:bg-[#161615]'
-                            : 'bg-hud-panel'
-                    "
+                    :data-role="turn.role"
+                    class="w-[78%] max-w-full"
+                    :class="turn.role === 'user' ? 'ml-auto' : 'mr-auto'"
                 >
-                    <h2
-                        class="mb-1 text-xs font-medium tracking-wide text-hud-text-dim uppercase"
+                    <div
+                        class="rounded-lg border border-hud-frame bg-hud-panel p-4 text-sm"
                     >
-                        {{ turn.role === 'user' ? 'You' : 'Assistant' }}
-                    </h2>
-                    <MarkdownRenderer
-                        v-if="turn.role !== 'user'"
-                        :content="turn.content"
-                    />
-                    <p v-else class="whitespace-pre-wrap">{{ turn.content }}</p>
+                        <h2
+                            class="mb-1 text-xs font-medium tracking-wide text-hud-text-dim uppercase"
+                        >
+                            {{ turn.role === 'user' ? 'You' : 'Assistant' }}
+                        </h2>
+                        <MarkdownRenderer
+                            v-if="turn.role !== 'user'"
+                            :content="turn.content"
+                        />
+                        <p v-else class="whitespace-pre-wrap text-hud-text">
+                            {{ turn.content }}
+                        </p>
+                    </div>
                 </div>
 
                 <div
@@ -198,6 +243,66 @@ async function send(): Promise<void> {
                     </ol>
                 </div>
             </section>
+
+            <!-- Input bar: passive mic + text input + send -->
+            <form
+                v-motion
+                :initial="{ opacity: 0, y: 8 }"
+                :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
+                class="flex w-full flex-col gap-2 sm:flex-row sm:items-center"
+                @submit.prevent="send"
+            >
+                <div class="flex flex-1 gap-2">
+                    <button
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        aria-label="Voice input is not available here"
+                        title="Voice input lives in Voice Chat"
+                        class="shrink-0 rounded-lg border border-hud-frame bg-hud-panel px-3 text-hud-text-dim"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="h-5 w-5"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+                            />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" x2="12" y1="19" y2="22" />
+                        </svg>
+                    </button>
+                    <input
+                        v-model="message"
+                        type="text"
+                        placeholder="Ask something..."
+                        class="flex-1 rounded-lg border border-hud-frame bg-hud-panel px-4 py-2 text-sm text-hud-text outline-none focus:border-hud-accent"
+                        :disabled="loading"
+                    />
+                </div>
+                <button
+                    type="submit"
+                    class="rounded-lg bg-hud-accent px-5 py-2 text-sm font-medium text-hud-base disabled:opacity-50"
+                    :disabled="loading || message.trim() === ''"
+                >
+                    {{ loading ? 'Thinking...' : 'Send' }}
+                </button>
+            </form>
+
+            <p
+                v-if="error"
+                role="alert"
+                class="rounded-lg bg-red-100 p-3 text-sm text-red-700"
+            >
+                {{ error }}
+            </p>
         </main>
     </div>
 </template>
