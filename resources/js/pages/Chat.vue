@@ -163,7 +163,7 @@ async function send(): Promise<void> {
         class="dark hud-frame relative flex h-screen flex-col items-center overflow-hidden bg-hud-base p-6 text-hud-text"
     >
         <main
-            class="flex w-full max-w-2xl flex-1 flex-col items-center gap-6 pt-10"
+            class="flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center gap-6 pt-10"
         >
             <!-- Top bar: brand + subtitle + readouts -->
             <header class="flex w-full flex-col gap-3">
