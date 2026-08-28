@@ -18,6 +18,12 @@ export default defineConfig({
                 bunny('JetBrains Mono', {
                     weights: [400, 500, 600],
                 }),
+                bunny('Rajdhani', {
+                    weights: [500, 600, 700],
+                }),
+                bunny('Inter', {
+                    weights: [400, 500, 600],
+                }),
             ],
         }),
         inertia(),

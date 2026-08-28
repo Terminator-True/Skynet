@@ -6,20 +6,26 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+    --font-display:
+        Rajdhani, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        Inter, ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
     --font-mono:
         'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --color-hud-base: #05070a;
-    --color-hud-panel: #0b1220;
-    --color-hud-accent: #22d3ee;
-    --color-hud-accent-soft: #38bdf8;
-    --color-hud-frame: rgba(125, 211, 252, 0.35);
-    --color-hud-text: #dbeafe;
-    --color-hud-text-dim: #64748b;
+    --color-hud-base: #0a0806;
+    --color-hud-panel: rgba(22, 17, 12, 0.55);
+    --color-hud-accent: #ff7a1a;
+    --color-hud-accent-soft: #ffc178;
+    --color-hud-frame: rgba(255, 193, 120, 0.35);
+    --color-hud-text: #f5ede1;
+    --color-hud-text-dim: #7a6a5c;
+    --color-hud-cyan: #5eead4;
+    --color-hud-cyan-deep: #1c3d38;
 }
 
 @layer components {
@@ -27,11 +33,85 @@
     .hud-frame {
         border: 1px solid var(--color-hud-frame);
     }
+
+    /* Four corner brackets framing the orb/stage wrapper. */
+    .hud-corner {
+        position: relative;
+    }
+
+    .hud-corner::before,
+    .hud-corner::after {
+        content: '';
+        position: absolute;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-color: var(--color-hud-accent);
+        pointer-events: none;
+    }
+
+    .hud-corner::before {
+        top: -0.5rem;
+        left: -0.5rem;
+        border-top: 1px solid;
+        border-left: 1px solid;
+    }
+
+    .hud-corner::after {
+        bottom: -0.5rem;
+        right: -0.5rem;
+        border-bottom: 1px solid;
+        border-right: 1px solid;
+    }
+
+    .hud-corner span:nth-child(1) {
+        position: absolute;
+        top: -0.5rem;
+        right: -0.5rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-top: 1px solid var(--color-hud-accent);
+        border-right: 1px solid var(--color-hud-accent);
+        pointer-events: none;
+    }
+
+    .hud-corner span:nth-child(2) {
+        position: absolute;
+        bottom: -0.5rem;
+        left: -0.5rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-bottom: 1px solid var(--color-hud-accent);
+        border-left: 1px solid var(--color-hud-accent);
+        pointer-events: none;
+    }
+
+    /* Subtle scanline overlay across the stage. */
+    .hud-scanline {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent 2px,
+            rgba(255, 122, 26, 0.05) 3px,
+            transparent 4px
+        );
+    }
+
+    /* Radial ember glow behind the orb. */
+    .hud-radial-bg {
+        background: radial-gradient(
+            circle at center,
+            rgba(255, 122, 26, 0.12) 0%,
+            transparent 70%
+        );
+    }
 }
 
 /* Markdown reply rendering (shared by Chat and VoiceChat). */
 .markdown-render {
-    color: #1b1b18;
+    color: #f5ede1;
     font-size: 0.875rem;
     line-height: 1.625;
     overflow-wrap: break-word;
@@ -86,7 +166,7 @@
 .markdown-render code {
     padding: 0.15rem 0.35rem;
     border-radius: 0.25rem;
-    background: #f3f3f0;
+    background: rgba(255, 122, 26, 0.08);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.8125em;
 }
@@ -96,7 +176,7 @@
     padding: 0.75rem 1rem;
     overflow-x: auto;
     border-radius: 0.375rem;
-    background: #f3f3f0;
+    background: #1a120b;
 }
 
 .markdown-render pre code {
@@ -108,8 +188,8 @@
 .markdown-render blockquote {
     margin: 0.75rem 0;
     padding-left: 0.75rem;
-    border-left: 3px solid #e3e3e0;
-    color: #706f6c;
+    border-left: 3px solid rgba(255, 122, 26, 0.35);
+    color: #c9b8a6;
 }
 
 .markdown-render table {
@@ -121,17 +201,17 @@
 .markdown-render th,
 .markdown-render td {
     padding: 0.4rem 0.75rem;
-    border: 1px solid #e3e3e0;
+    border: 1px solid rgba(255, 193, 120, 0.25);
     text-align: left;
 }
 
 .markdown-render th {
     font-weight: 600;
-    background: #f3f3f0;
+    background: rgba(255, 122, 26, 0.08);
 }
 
 .markdown-render a {
-    color: #276ef1;
+    color: #5eead4;
     text-decoration: underline;
 }
 
@@ -150,14 +230,14 @@
 .hljs-selector-tag,
 .hljs-literal,
 .hljs-doctag {
-    color: #c08af0;
+    color: #ff7a1a;
 }
 
 .hljs-string,
 .hljs-title,
 .hljs-section,
 .hljs-attr {
-    color: #7dd3a8;
+    color: #ffc178;
 }
 
 .hljs-number,
@@ -192,32 +272,32 @@
 
 @media (prefers-color-scheme: dark) {
     .markdown-render {
-        color: #ededec;
+        color: #f5ede1;
     }
 
     .markdown-render code {
-        background: #161615;
+        background: rgba(255, 122, 26, 0.08);
     }
 
     .markdown-render pre {
-        background: #0a0a0a;
+        background: #1a120b;
     }
 
     .markdown-render blockquote {
-        border-left-color: #3e3e3a;
-        color: #a3a39f;
+        border-left-color: rgba(255, 122, 26, 0.35);
+        color: #c9b8a6;
     }
 
     .markdown-render th,
     .markdown-render td {
-        border-color: #3e3e3a;
+        border-color: rgba(255, 193, 120, 0.25);
     }
 
     .markdown-render th {
-        background: #161615;
+        background: rgba(255, 122, 26, 0.08);
     }
 
     .markdown-render a {
-        color: #7db9e8;
+        color: #5eead4;
     }
 }
