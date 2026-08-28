@@ -160,9 +160,11 @@ async function send(): Promise<void> {
     <Head title="Chat" />
     <NotificationToasts />
     <div
-        class="dark hud-frame relative h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
+        class="dark hud-frame relative flex h-screen flex-col items-center overflow-hidden bg-hud-base p-6 text-hud-text"
     >
-        <main class="flex w-full max-w-2xl flex-col items-center gap-6 pt-10">
+        <main
+            class="flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center gap-6 pt-10"
+        >
             <!-- Top bar: brand + subtitle + readouts -->
             <header class="flex w-full flex-col gap-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
@@ -241,7 +243,7 @@ async function send(): Promise<void> {
                 :initial="{ opacity: 0, y: 8 }"
                 :enter="{ opacity: 1, y: 0, transition: { duration: 300 } }"
                 ref="threadEl"
-                class="max-h flex h-[60vh] min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto"
+                class="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto"
             >
                 <div
                     v-for="(turn, index) in history"

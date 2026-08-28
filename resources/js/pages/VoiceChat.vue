@@ -266,9 +266,11 @@ onMounted(async () => {
     <Head title="Voice Chat" />
     <NotificationToasts />
     <div
-        class="dark hud-frame relative h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
+        class="dark hud-frame relative flex h-screen flex-col items-center overflow-hidden bg-hud-base p-6 text-hud-text"
     >
-        <main class="flex w-full max-w-2xl flex-col gap-6 pt-10">
+        <main
+            class="flex min-h-0 w-full max-w-2xl flex-1 flex-col items-center gap-6 pt-10"
+        >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h1
                     class="font-display text-2xl font-semibold tracking-wide text-hud-text"
@@ -408,7 +410,7 @@ onMounted(async () => {
             <section
                 v-if="history.length > 0"
                 ref="threadEl"
-                class="max-h flex h-[60vh] min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto"
+                class="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto"
             >
                 <div
                     v-for="(turn, index) in history"
