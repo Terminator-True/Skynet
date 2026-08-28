@@ -2,6 +2,9 @@
 
 A personal conversational AI assistant that runs **100% on your own hardware**. It reads your Gmail and Calendar (read-only), tracks Amazon packages, searches the web, recalls an Obsidian knowledge base, remembers long-term preferences, and talks to you by voice — all processed locally via Ollama. **No email, calendar, or conversation content ever leaves your machine** or reaches a third-party AI API.
 
+<img width="1098" height="1256" alt="image" src="https://github.com/user-attachments/assets/96c618f1-4470-4433-a091-bf305474e131" />
+
+
 ## Why it's private
 
 - The LLM (Ollama, e.g. Qwen 2.5 14B) runs on your hardware.
