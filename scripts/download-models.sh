@@ -53,7 +53,10 @@ fetch_if_missing "$PIPER_WASM_BASE/piper_phonemize.data" "$PIPER_WASM_DIR/piper_
 # onnxruntime wasm: prefer the installed node_modules copy (matches the bundled
 # JS version), else fall back to the matching CDN release.
 if [ -d "$ONNX_NODE_DIR" ]; then
+    # onnxruntime-web ships a JS glue loader (.mjs) alongside each .wasm; piper
+    # imports the .mjs from /models/piper/onnx/, so BOTH must be provisioned.
     cp -n "$ONNX_NODE_DIR"/*.wasm "$ONNX_DIR/" 2>/dev/null || true
+    cp -n "$ONNX_NODE_DIR"/*.mjs "$ONNX_DIR/" 2>/dev/null || true
 else
     for f in ort-wasm-simd-threaded.wasm ort-wasm-simd-threaded.jsep.wasm \
         ort-wasm-simd-threaded.jspi.wasm ort-wasm-simd-threaded.asyncify.wasm; do
