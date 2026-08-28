@@ -62,7 +62,7 @@ onMounted(() => {
 <template>
     <div
         ref="containerRef"
-        class="hud-visualizer relative h-40 w-40"
+        class="hud-visualizer relative w-40 h-40 sm:w-52 sm:h-52 md:w-64 md:h-64"
         role="img"
         :aria-label="`Assistant status: ${statusText}`"
     >
