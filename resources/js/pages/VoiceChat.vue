@@ -220,28 +220,44 @@ onMounted(async () => {
     <Head title="Voice Chat" />
     <NotificationToasts />
     <div
-        class="dark flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] dark:bg-[#0a0a0a] dark:text-[#EDEDEC]"
+        class="dark hud-frame relative min-h-screen flex-col items-center bg-hud-base p-6 text-hud-text"
     >
         <main class="flex w-full max-w-2xl flex-col gap-6 pt-10">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-semibold">Skynet Voice Assistant</h1>
-                <a href="/chat" class="text-sm text-[#706f6c] underline"
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h1
+                    class="font-display text-2xl font-semibold tracking-wide text-hud-text"
+                >
+                    Skynet Voice Assistant
+                </h1>
+                <a href="/chat" class="text-sm text-hud-text-dim underline"
                     >Back to chat</a
                 >
             </div>
 
-            <div class="flex justify-center">
-                <AssistantVisualizer :state="assistantState" />
-            </div>
+            <!-- Orb stage with HUD chrome + shared orb states -->
+            <section
+                class="hud-corner hud-scanline hud-radial-bg relative w-full"
+            >
+                <span></span>
+                <span></span>
+                <div class="flex flex-col items-center gap-4 py-8">
+                    <p
+                        class="font-mono text-xs tracking-[0.3em] text-hud-text-dim uppercase"
+                    >
+                        System state
+                    </p>
+                    <AssistantVisualizer :state="assistantState" />
+                </div>
+            </section>
 
             <div class="flex flex-col gap-2">
                 <button
                     type="button"
-                    class="flex items-center justify-center gap-2 rounded-lg border border-[#e3e3e0] px-4 py-2 text-sm disabled:opacity-50 dark:border-[#3E3E3A]"
+                    class="flex items-center justify-center gap-2 rounded-lg border border-hud-frame px-4 py-2 text-sm disabled:opacity-50"
                     :class="
                         isListening
-                            ? 'bg-[#1b1b18] text-white dark:bg-[#EDEDEC] dark:text-[#1b1b18]'
-                            : 'text-[#1b1b18] dark:text-[#EDEDEC]'
+                            ? 'bg-hud-accent text-hud-base'
+                            : 'text-hud-text'
                     "
                     :disabled="!engine"
                     @click="toggleAlwaysListening"
@@ -250,8 +266,8 @@ onMounted(async () => {
                         class="h-2.5 w-2.5 rounded-full"
                         :class="
                             isListening
-                                ? 'animate-pulse bg-green-500'
-                                : 'bg-[#9a9a96]'
+                                ? 'animate-pulse bg-hud-cyan'
+                                : 'bg-hud-text-dim'
                         "
                     ></span>
                     {{
@@ -261,7 +277,7 @@ onMounted(async () => {
                     }}
                 </button>
 
-                <p v-if="isListening" class="text-xs text-[#706f6c]">
+                <p v-if="isListening" class="text-xs text-hud-text-dim">
                     Wake word detection runs fully on-device — your audio never
                     leaves this device. Your browser shows a recording indicator
                     while the mic is active, and detection only works while this
@@ -275,7 +291,7 @@ onMounted(async () => {
                     v-for="chip in GREETING_CHIPS"
                     :key="chip.message"
                     type="button"
-                    class="rounded-full border border-[#e3e3e0] px-4 py-1.5 text-sm hover:bg-[#f3f3f0] dark:border-[#3E3E3A] dark:hover:bg-[#161615]"
+                    class="rounded-full border border-hud-frame px-4 py-1.5 text-sm text-hud-text hover:border-hud-accent hover:bg-hud-panel"
                     :disabled="isBusy"
                     @click="sendText(chip.message)"
                 >
@@ -288,13 +304,13 @@ onMounted(async () => {
                     v-model="textInput"
                     type="text"
                     placeholder="Type a message..."
-                    class="flex-1 rounded-lg border border-[#e3e3e0] px-4 py-2 text-sm outline-none focus:border-[#1b1b18] dark:border-[#3E3E3A] dark:bg-[#161615]"
+                    class="flex-1 rounded-lg border border-hud-frame bg-hud-panel px-4 py-2 text-sm text-hud-text outline-none focus:border-hud-accent"
                     :disabled="isBusy"
                     @keydown.enter.prevent="sendFallback"
                 />
                 <button
                     type="button"
-                    class="rounded-lg bg-[#1b1b18] px-5 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-[#EDEDEC] dark:text-[#1b1b18]"
+                    class="rounded-lg bg-hud-accent px-5 py-2 text-sm font-medium text-hud-base disabled:opacity-50"
                     :disabled="isBusy || textInput.trim() === ''"
                     @click="sendFallback"
                 >
@@ -305,7 +321,7 @@ onMounted(async () => {
             <button
                 v-if="!isListening"
                 type="button"
-                class="rounded-lg bg-[#1b1b18] px-6 py-4 text-sm font-medium text-white disabled:opacity-50 dark:bg-[#EDEDEC] dark:text-[#1b1b18]"
+                class="rounded-lg bg-hud-accent px-6 py-4 text-sm font-medium text-hud-base disabled:opacity-50"
                 :disabled="!engine || isBusy"
                 @mousedown="start()"
                 @mouseup="stop()"
@@ -316,7 +332,7 @@ onMounted(async () => {
 
             <div
                 v-else
-                class="rounded-lg border border-[#e3e3e0] px-6 py-4 text-sm dark:border-[#3E3E3A]"
+                class="rounded-lg border border-hud-frame bg-hud-panel px-6 py-4 text-sm text-hud-text"
                 aria-live="polite"
             >
                 {{ wakeStatus }}
@@ -332,10 +348,10 @@ onMounted(async () => {
 
             <section v-if="transcription" class="flex flex-col gap-4">
                 <div
-                    class="rounded-lg border border-[#e3e3e0] p-4 text-sm dark:border-[#3E3E3A]"
+                    class="rounded-lg border border-hud-frame bg-hud-panel p-4 text-sm"
                 >
                     <h2
-                        class="mb-1 text-xs font-medium tracking-wide text-[#706f6c] uppercase"
+                        class="mb-1 text-xs font-medium tracking-wide text-hud-text-dim uppercase"
                     >
                         You said
                     </h2>
@@ -347,23 +363,26 @@ onMounted(async () => {
                 <div
                     v-for="(turn, index) in history"
                     :key="index"
-                    class="rounded-lg border border-[#e3e3e0] p-4 text-sm dark:border-[#3E3E3A]"
-                    :class="
-                        turn.role === 'user'
-                            ? 'bg-[#f3f3f0] dark:bg-[#161615]'
-                            : ''
-                    "
+                    :data-role="turn.role"
+                    class="w-[78%] max-w-full"
+                    :class="turn.role === 'user' ? 'ml-auto' : 'mr-auto'"
                 >
-                    <h2
-                        class="mb-1 text-xs font-medium tracking-wide text-[#706f6c] uppercase"
+                    <div
+                        class="rounded-lg border border-hud-frame bg-hud-panel p-4 text-sm"
                     >
-                        {{ turn.role === 'user' ? 'You' : 'Assistant' }}
-                    </h2>
-                    <MarkdownRenderer
-                        v-if="turn.role !== 'user'"
-                        :content="turn.content"
-                    />
-                    <p v-else class="whitespace-pre-wrap">{{ turn.content }}</p>
+                        <h2
+                            class="mb-1 text-xs font-medium tracking-wide text-hud-text-dim uppercase"
+                        >
+                            {{ turn.role === 'user' ? 'You' : 'Assistant' }}
+                        </h2>
+                        <MarkdownRenderer
+                            v-if="turn.role !== 'user'"
+                            :content="turn.content"
+                        />
+                        <p v-else class="whitespace-pre-wrap">
+                            {{ turn.content }}
+                        </p>
+                    </div>
                 </div>
             </section>
         </main>
