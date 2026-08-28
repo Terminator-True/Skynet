@@ -40,4 +40,16 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    server: {
+        proxy: {
+            // The voice models (/models/*) are served by the Laravel backend from
+            // public/models. onnxruntime-web resolves wasmPaths relative to the JS
+            // module origin (the Vite dev server, e.g. [::1]:5173), NOT the page
+            // origin — so proxy /models to the Laravel backend in dev.
+            '/models': {
+                target: process.env.APP_URL ?? 'http://localhost:8000',
+                changeOrigin: true,
+            },
+        },
+    },
 });
