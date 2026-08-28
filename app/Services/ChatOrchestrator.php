@@ -123,7 +123,7 @@ class ChatOrchestrator
                 return new ChatTurnResult(
                     reply: $reply,
                     toolCalls: $trace,
-                    history: $conversation !== null ? $this->conversations->history($conversation) : [],
+                    history: $conversation !== null ? $this->conversations->recent($conversation) : [],
                     sessionId: $conversation?->session_id,
                 );
             }

@@ -7,3 +7,6 @@ use Illuminate\Support\Facades\Route;
 // SSE later without touching the orchestrator core.
 Route::post('/chat', [ChatController::class, 'store'])
     ->name('chat.store');
+
+Route::get('/chat/history', [ChatController::class, 'history'])
+    ->name('chat.history');

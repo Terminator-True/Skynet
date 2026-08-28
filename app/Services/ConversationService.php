@@ -58,6 +58,33 @@ class ConversationService
     }
 
     /**
+     * The last $limit messages for a conversation, oldest to newest.
+     *
+     * Read-only display cap (ORDER BY created_at DESC, id DESC LIMIT $limit,
+     * then reversed). Returns the same {role, content, tool_trace} shape as
+     * history(), but never caps the full-thread contract history() provides
+     * for model-context rebuilds.
+     *
+     * @return list<array{role: string, content: string, tool_trace: array<int, mixed>|null}>
+     */
+    public function recent(Conversation $conversation, int $limit = 10): array
+    {
+        return $conversation->messages()
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->take($limit)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn (Message $message): array => [
+                'role' => $message->role,
+                'content' => $message->content,
+                'tool_trace' => $message->tool_trace,
+            ])
+            ->all();
+    }
+
+    /**
      * Append a message to a conversation.
      *
      * @param  array<int, mixed>|null  $trace
