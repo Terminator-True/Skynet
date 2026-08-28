@@ -200,8 +200,7 @@ describe('Chat.vue bounded scroll + centered layout', () => {
         const thread = wrapper.find('section.overflow-y-auto');
 
         expect(thread.exists()).toBe(true);
-        expect(thread.classes()).toContain('h-[60vh]');
-        expect(thread.classes()).toContain('max-h');
+        expect(thread.classes()).toContain('flex');
         expect(thread.classes()).toContain('min-h-0');
         expect(thread.classes()).toContain('flex-1');
     });
