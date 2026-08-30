@@ -10,6 +10,8 @@ use App\Services\Google\CalendarEventsReader;
 use App\Services\Google\GoogleOAuthClient;
 use App\Services\Ollama\EmbeddingProvider;
 use App\Services\Ollama\OllamaEmbedClient;
+use App\Services\Opencode\HttpOpencodeStatusReader;
+use App\Services\Opencode\OpencodeStatusReader;
 use App\Services\Web\Ddg\DdgInstantAnswerReader;
 use App\Services\Web\FallbackWebKnowledgeReader;
 use App\Services\Web\WebKnowledgeReader;
@@ -17,6 +19,7 @@ use App\Services\Web\Wikipedia\WikipediaReader;
 use App\Tools\BuscarCorreos;
 use App\Tools\BuscarNotas;
 use App\Tools\BuscarWeb;
+use App\Tools\ConsultarEstadoOpencode;
 use App\Tools\Dummy\CalculateSum;
 use App\Tools\Dummy\GetCurrentTime;
 use App\Tools\Dummy\GetWeatherMock;
@@ -52,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
             $registry->register($this->app->make(RecordarPreferencia::class));
             $registry->register($this->app->make(BuscarNotas::class));
             $registry->register($this->app->make(GuardarNota::class));
+            $registry->register($this->app->make(ConsultarEstadoOpencode::class));
 
             return $registry;
         });
@@ -77,6 +81,10 @@ class AppServiceProvider extends ServiceProvider
         // Embedding seam: Ollama /api/embed is plain Laravel Http, so tests
         // bind FakeEmbeddingProvider here for zero-egress offline runs.
         $this->app->bind(EmbeddingProvider::class, OllamaEmbedClient::class);
+
+        // OpenCode seam: local http via Laravel Http -> Http::fake intercepts
+        // directly, so tests bind fakes here (no apiclient Guzzle bypass).
+        $this->app->bind(OpencodeStatusReader::class, HttpOpencodeStatusReader::class);
     }
 
     /**
