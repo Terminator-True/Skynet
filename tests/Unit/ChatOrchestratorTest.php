@@ -142,7 +142,7 @@ it('includes every registered tool definition in each request', function () {
         $body = json_decode($request->body(), true);
         $names = collect($body['tools'] ?? [])->pluck('function.name')->all();
 
-        return $names === ['get_current_time', 'calculate_sum', 'get_weather_mock', 'listar_eventos_calendario', 'buscar_correos', 'leer_correo', 'extraer_tracking_amazon', 'buscar_web', 'recordar_preferencia', 'buscar_notas', 'guardar_nota'];
+        return $names === ['get_current_time', 'calculate_sum', 'get_weather_mock', 'listar_eventos_calendario', 'buscar_correos', 'leer_correo', 'extraer_tracking_amazon', 'buscar_web', 'recordar_preferencia', 'buscar_notas', 'guardar_nota', 'consultar_estado_opencode'];
     });
 });
 
